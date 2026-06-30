@@ -8,11 +8,13 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "#0a0a14",
-        panel: "rgba(20, 22, 40, 0.55)",
-        accent: "#7c5cff",
-        accent2: "#16d9c9",
-        glow: "#a78bfa",
+        // Driven by CSS variables (see globals.css + lib/theme.ts) so the
+        // whole site recolors live. Channels enable Tailwind opacity (/20 etc).
+        ink: "rgb(var(--ink) / <alpha-value>)",
+        panel: "rgb(var(--panel) / <alpha-value>)",
+        accent: "rgb(var(--accent) / <alpha-value>)",
+        accent2: "rgb(var(--accent2) / <alpha-value>)",
+        glow: "rgb(var(--glow) / <alpha-value>)",
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],

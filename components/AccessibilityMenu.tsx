@@ -2,45 +2,122 @@
 
 import { useEffect, useState } from "react";
 import { useSettings } from "@/lib/settings";
+import { PRESETS } from "@/lib/theme";
 
-/** The reading/accessibility toggle menu. Preferences persist via useSettings;
- *  the headless <AccessibilityController> (mounted in the root layout) applies
- *  them to <html> on every page. */
+/** Appearance panel: site-wide color theme (presets + custom colors) and
+ *  reading options. Preferences persist via useSettings; the headless
+ *  <AccessibilityController> applies them to <html> on every page. */
 export default function AccessibilityMenu() {
-  const { dyslexiaFont, roomyText, setDyslexiaFont, setRoomyText } = useSettings();
+  const {
+    dyslexiaFont,
+    roomyText,
+    theme,
+    setDyslexiaFont,
+    setRoomyText,
+    setTheme,
+    patchTheme,
+    resetTheme,
+  } = useSettings();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
-
   if (!mounted) return null;
+
+  const activePreset = PRESETS.find(
+    (p) =>
+      p.theme.accent === theme.accent &&
+      p.theme.accent2 === theme.accent2 &&
+      p.theme.ink === theme.ink
+  );
 
   return (
     <div className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        title="Reading & accessibility"
-        className={`flex h-10 items-center gap-1.5 rounded-2xl border px-3 text-sm font-medium transition ${
-          dyslexiaFont || roomyText
-            ? "border-accent/50 bg-accent/15 text-white"
-            : "border-white/15 text-white/80 hover:bg-white/10"
-        }`}
+        title="Appearance — colors & reading"
+        className="flex h-10 items-center gap-2 rounded-2xl border border-white/15 px-3 text-sm font-medium text-white/80 transition hover:bg-white/10"
       >
-        <span className="text-base leading-none">Aa</span>
-        <span className="hidden sm:inline">Reading</span>
+        <span
+          className="h-4 w-4 rounded-full ring-2 ring-white/20"
+          style={{
+            background: `linear-gradient(135deg, ${theme.accent}, ${theme.accent2})`,
+          }}
+        />
+        <span className="hidden sm:inline">Appearance</span>
       </button>
 
       {open && (
         <>
           <div className="fixed inset-0 z-[90]" onClick={() => setOpen(false)} />
-          <div className="glass-strong absolute right-0 z-[95] mt-2 w-64 rounded-2xl p-2 text-sm">
-            <p className="px-3 pb-1 pt-2 text-xs uppercase tracking-wider text-white/40">
-              Reading options
-            </p>
+          <div className="glass-strong absolute right-0 z-[95] mt-2 w-72 rounded-2xl p-3 text-sm">
+            {/* ── Theme ── */}
+            <div className="flex items-center justify-between px-1 pb-1">
+              <p className="text-xs uppercase tracking-wider text-white/40">Theme</p>
+              <button
+                onClick={resetTheme}
+                className="text-[11px] text-white/40 transition hover:text-white"
+              >
+                Reset
+              </button>
+            </div>
 
+            <div className="grid grid-cols-4 gap-2 px-1">
+              {PRESETS.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setTheme(p.theme)}
+                  title={p.name}
+                  className={`flex h-10 items-center justify-center rounded-xl ring-2 transition ${
+                    activePreset?.id === p.id
+                      ? "ring-white/80"
+                      : "ring-white/10 hover:ring-white/40"
+                  }`}
+                  style={{
+                    background: `linear-gradient(135deg, ${p.theme.accent}, ${p.theme.accent2})`,
+                  }}
+                >
+                  {activePreset?.id === p.id && (
+                    <span className="text-xs font-bold text-white drop-shadow">✓</span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Custom colors */}
+            <div className="mt-3 space-y-1.5 px-1">
+              <p className="text-[11px] text-white/40">Custom colors</p>
+              <ColorRow
+                label="Primary"
+                value={theme.accent}
+                onChange={(v) => patchTheme({ accent: v })}
+              />
+              <ColorRow
+                label="Secondary"
+                value={theme.accent2}
+                onChange={(v) => patchTheme({ accent2: v })}
+              />
+              <ColorRow
+                label="Highlight"
+                value={theme.glow}
+                onChange={(v) => patchTheme({ glow: v })}
+              />
+              <ColorRow
+                label="Background"
+                value={theme.ink}
+                onChange={(v) => patchTheme({ ink: v })}
+              />
+            </div>
+
+            <div className="my-3 h-px bg-white/10" />
+
+            {/* ── Reading ── */}
+            <p className="px-1 pb-1 text-xs uppercase tracking-wider text-white/40">
+              Reading
+            </p>
             <button
               onClick={() => setDyslexiaFont(!dyslexiaFont)}
-              className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left transition hover:bg-white/10"
+              className="flex w-full items-center justify-between rounded-xl px-2 py-2.5 text-left transition hover:bg-white/10"
             >
               <span>
                 <span className="block">Dyslexia-friendly font</span>
@@ -48,10 +125,9 @@ export default function AccessibilityMenu() {
               </span>
               <Switch on={dyslexiaFont} />
             </button>
-
             <button
               onClick={() => setRoomyText(!roomyText)}
-              className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left transition hover:bg-white/10"
+              className="flex w-full items-center justify-between rounded-xl px-2 py-2.5 text-left transition hover:bg-white/10"
             >
               <span>
                 <span className="block">Roomier text</span>
@@ -63,6 +139,31 @@ export default function AccessibilityMenu() {
         </>
       )}
     </div>
+  );
+}
+
+function ColorRow({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="flex items-center justify-between gap-2 rounded-lg px-1 py-1">
+      <span className="text-white/70">{label}</span>
+      <span className="flex items-center gap-2">
+        <span className="text-[11px] uppercase text-white/35">{value}</span>
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-7 w-7 cursor-pointer rounded-md border border-white/15 bg-transparent p-0"
+        />
+      </span>
+    </label>
   );
 }
 

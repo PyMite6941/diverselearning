@@ -4,6 +4,15 @@
 
 :root {
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+
+  /* Theme colors as RGB channels so Tailwind opacity modifiers keep working.
+     These defaults match the "Indigo" preset; the theme controller overrides
+     them live from saved settings. */
+  --accent: 124 92 255;
+  --accent2: 22 217 201;
+  --glow: 167 139 250;
+  --ink: 7 7 15;
+  --panel: 20 22 40;
 }
 
 /* OpenDyslexic — self-hosted, applied when the reader enables it. */
@@ -50,17 +59,17 @@ body {
 }
 
 body {
-  @apply bg-ink text-white antialiased;
+  @apply text-white antialiased;
   background:
-    radial-gradient(1200px 800px at 15% -10%, rgba(124, 92, 255, 0.18), transparent 60%),
-    radial-gradient(1000px 700px at 110% 10%, rgba(22, 217, 201, 0.14), transparent 55%),
-    #07070f;
+    radial-gradient(1200px 800px at 15% -10%, rgb(var(--accent) / 0.18), transparent 60%),
+    radial-gradient(1000px 700px at 110% 10%, rgb(var(--accent2) / 0.14), transparent 55%),
+    rgb(var(--ink));
   overflow-x: hidden;
 }
 
 /* Glass panel utility */
 .glass {
-  background: var(--panel);
+  background: rgb(var(--panel) / 0.55);
   backdrop-filter: blur(16px) saturate(140%);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -70,7 +79,7 @@ body {
 }
 
 .glass-strong {
-  background: rgba(16, 18, 34, 0.78);
+  background: rgb(var(--panel) / 0.82);
   backdrop-filter: blur(22px) saturate(150%);
   -webkit-backdrop-filter: blur(22px) saturate(150%);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -78,7 +87,13 @@ body {
 
 /* Animated gradient text */
 .grad-text {
-  background: linear-gradient(110deg, #fff, #a78bfa 40%, #16d9c9 70%, #fff);
+  background: linear-gradient(
+    110deg,
+    #fff,
+    rgb(var(--glow)) 40%,
+    rgb(var(--accent2)) 70%,
+    #fff
+  );
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
@@ -99,7 +114,7 @@ body {
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(124, 92, 255, 0.4);
+  background: rgb(var(--accent) / 0.4);
   border-radius: 6px;
 }
 ::-webkit-scrollbar-track {
