@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
+import { fetchCloudCourse } from "@/lib/db";
 import type { Course } from "@/lib/types";
 
 // 3D viewer must be client-only (no SSR for WebGL).
@@ -21,15 +22,32 @@ export default function CoursePage() {
   const params = useParams();
   const id = params.id as string;
   const getCourse = useStore((s) => s.getCourse);
+  const cacheCourse = useStore((s) => s.cacheCourse);
   const [course, setCourse] = useState<Course | undefined>();
   const [active, setActive] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [loadingCloud, setLoadingCloud] = useState(false);
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
-    if (mounted) setCourse(getCourse(id));
-  }, [mounted, id, getCourse]);
+    if (!mounted) return;
+    const local = getCourse(id);
+    if (local) {
+      setCourse(local);
+      return;
+    }
+    // Not in local memory — try the cloud (deep-link on a fresh device).
+    setLoadingCloud(true);
+    fetchCloudCourse(id)
+      .then((c) => {
+        if (c) {
+          cacheCourse(c);
+          setCourse(c);
+        }
+      })
+      .finally(() => setLoadingCloud(false));
+  }, [mounted, id, getCourse, cacheCourse]);
 
   useEffect(() => setShowAnswer(false), [active]);
 
@@ -38,7 +56,9 @@ export default function CoursePage() {
   if (!course) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-        <p className="text-white/60">Course not found on this device.</p>
+        <p className="text-white/60">
+          {loadingCloud ? "Loading course…" : "Course not found, or sign in to access it."}
+        </p>
         <Link href="/" className="text-accent underline">
           ← Back to dashboard
         </Link>

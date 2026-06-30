@@ -9,6 +9,7 @@ import { useStore } from "@/lib/store";
 export default function CourseTile({ card }: { card: CourseCard }) {
   const router = useRouter();
   const updateLayout = useStore((s) => s.updateLayout);
+  const commitLayout = useStore((s) => s.commitLayout);
   const removeCourse = useStore((s) => s.removeCourse);
   const ref = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -44,7 +45,9 @@ export default function CourseTile({ card }: { card: CourseCard }) {
   const onPointerUp = useCallback(() => {
     setDragging(false);
     document.body.classList.remove("dragging");
-  }, []);
+    // persist the final position to the cloud (no-op in local-only mode)
+    if (moved.current) commitLayout(card.id);
+  }, [card.id, commitLayout]);
 
   return (
     <div
