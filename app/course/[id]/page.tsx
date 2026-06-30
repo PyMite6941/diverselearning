@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import { fetchCloudCourse } from "@/lib/db";
 import AccessibilityMenu from "@/components/AccessibilityMenu";
+import LessonReader from "@/components/LessonReader";
 import type { Course } from "@/lib/types";
 
 // 3D viewers must be client-only (no SSR for WebGL).
@@ -234,12 +235,8 @@ export default function CoursePage() {
             </p>
             <h2 className="mt-2 text-3xl font-bold">{lesson.title}</h2>
 
-            <div className="mt-5 space-y-4">
-              {lesson.body.map((p, i) => (
-                <p key={i} className="leading-relaxed text-white/75">
-                  {p}
-                </p>
-              ))}
+            <div className="mt-5">
+              <LessonReader key={lesson.id} body={lesson.body} accent={course.accent} />
             </div>
 
             {lesson.check && (
