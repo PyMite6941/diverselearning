@@ -1,0 +1,158 @@
+"use client";
+
+import { Suspense, useState } from "react";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, Html, Float, ContactShadows, Environment } from "@react-three/drei";
+import type { ModelPart, ModelSpec } from "@/lib/types";
+
+function Part({
+  part,
+  active,
+  dim,
+  onSelect,
+}: {
+  part: ModelPart;
+  active: boolean;
+  dim: boolean;
+  onSelect: (id: string) => void;
+}) {
+  const [hover, setHover] = useState(false);
+  const scale = part.scale ?? [1, 1, 1];
+
+  const geom = (() => {
+    switch (part.shape) {
+      case "sphere":
+        return <sphereGeometry args={[0.5, 48, 48]} />;
+      case "cylinder":
+        return <cylinderGeometry args={[0.5, 0.5, 1, 48]} />;
+      case "cone":
+        return <coneGeometry args={[0.5, 1, 48]} />;
+      case "torus":
+        return <torusGeometry args={[0.5, 0.18, 24, 64]} />;
+      default:
+        return <boxGeometry args={[1, 1, 1]} />;
+    }
+  })();
+
+  return (
+    <group position={part.position}>
+      <mesh
+        scale={scale as [number, number, number]}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect(part.id);
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setHover(true);
+          document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={() => {
+          setHover(false);
+          document.body.style.cursor = "default";
+        }}
+      >
+        {geom}
+        <meshStandardMaterial
+          color={part.color}
+          roughness={0.35}
+          metalness={0.25}
+          transparent
+          opacity={dim ? 0.18 : active ? 1 : hover ? 0.95 : 0.85}
+          emissive={part.color}
+          emissiveIntensity={active ? 0.45 : hover ? 0.25 : 0.08}
+        />
+      </mesh>
+      {(hover || active) && (
+        <Html distanceFactor={9} position={[0, 0.5 * (scale[1] ?? 1) + 0.3, 0]} center>
+          <div className="pointer-events-none whitespace-nowrap rounded-full bg-black/80 px-3 py-1 text-xs font-medium text-white shadow-lg ring-1 ring-white/10">
+            {part.label}
+          </div>
+        </Html>
+      )}
+    </group>
+  );
+}
+
+export default function ModelViewer({
+  model,
+  accent = "#7c5cff",
+}: {
+  model: ModelSpec;
+  accent?: string;
+}) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const active = model.parts.find((p) => p.id === selected) ?? null;
+
+  return (
+    <div className="relative h-full w-full">
+      <Canvas
+        camera={{ position: [4, 3, 5], fov: 45 }}
+        onPointerMissed={() => setSelected(null)}
+        dpr={[1, 2]}
+      >
+        <color attach="background" args={["#070710"]} />
+        <ambientLight intensity={0.6} />
+        <directionalLight position={[5, 6, 4]} intensity={1.1} />
+        <pointLight position={[-4, -2, -3]} intensity={0.6} color={accent} />
+        <Suspense fallback={null}>
+          <Float speed={1.4} rotationIntensity={0.25} floatIntensity={0.4}>
+            <group>
+              {model.parts.map((p) => (
+                <Part
+                  key={p.id}
+                  part={p}
+                  active={active?.id === p.id}
+                  dim={!!active && active.id !== p.id}
+                  onSelect={(id) => setSelected((cur) => (cur === id ? null : id))}
+                />
+              ))}
+            </group>
+          </Float>
+          <ContactShadows
+            position={[0, -2.2, 0]}
+            opacity={0.4}
+            scale={12}
+            blur={2.6}
+            far={4}
+          />
+          <Environment preset="city" />
+        </Suspense>
+        <OrbitControls
+          enablePan={false}
+          minDistance={3}
+          maxDistance={12}
+          autoRotate={!active}
+          autoRotateSpeed={0.6}
+        />
+      </Canvas>
+
+      {/* caption */}
+      <div className="pointer-events-none absolute left-4 top-4 max-w-[60%] rounded-xl bg-black/40 px-3 py-2 text-xs text-white/70 backdrop-blur">
+        {model.caption}
+      </div>
+
+      {/* part breakdown panel */}
+      <div className="pointer-events-none absolute bottom-4 left-4 right-4 flex justify-center">
+        {active ? (
+          <div className="glass-strong pointer-events-auto max-w-lg rounded-2xl px-5 py-4 transition-all">
+            <div className="mb-1 flex items-center gap-2">
+              <span
+                className="inline-block h-3 w-3 rounded-full"
+                style={{ background: active.color }}
+              />
+              <h4 className="text-sm font-semibold">{active.label}</h4>
+            </div>
+            <p className="text-sm leading-relaxed text-white/75">
+              {active.explanation}
+            </p>
+          </div>
+        ) : (
+          <div className="pointer-events-none rounded-full bg-black/40 px-4 py-1.5 text-xs text-white/50 backdrop-blur">
+            Drag to rotate · click a part to break it down
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
