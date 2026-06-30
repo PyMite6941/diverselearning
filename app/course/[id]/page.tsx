@@ -80,7 +80,7 @@ export default function CoursePage() {
         <p className="text-white/60">
           {loadingCloud ? "Loading course…" : "Course not found, or sign in to access it."}
         </p>
-        <Link href="/" className="text-accent underline">
+        <Link href="/dashboard" className="text-accent underline">
           ← Back to dashboard
         </Link>
       </div>
@@ -117,7 +117,7 @@ export default function CoursePage() {
         <div className="p-6">
           <div className="flex items-center justify-between">
             <Link
-              href="/"
+              href="/dashboard"
               className="text-xs text-white/40 transition hover:text-white"
             >
               ← Dashboard

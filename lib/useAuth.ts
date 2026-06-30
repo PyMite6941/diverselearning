@@ -46,7 +46,16 @@ export function useAuth(): AuthState {
 
   const signUp = useCallback(async (email: string, password: string) => {
     if (!supabase) throw new Error("Cloud accounts are not configured.");
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      // Return confirmation links to whatever origin the app is served from
+      // (localhost in dev, the deployed URL in prod) — no hard-coded domain.
+      options:
+        typeof window !== "undefined"
+          ? { emailRedirectTo: window.location.origin }
+          : undefined,
+    });
     if (error) throw error;
     // If email confirmation is on, there's no active session yet.
     return { needsConfirm: !data.session };
