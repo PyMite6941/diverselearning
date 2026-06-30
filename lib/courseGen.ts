@@ -199,7 +199,7 @@ export function sampleCourse(topic = "The Animal Cell"): Course {
           caption: "An animal cell — translucent membrane with its organelles inside",
           parts: [
             { id: `${id}-l0-p0`, label: "Cell Membrane", shape: "sphere", position: [0, 0, 0], scale: [2.6, 2.6, 2.6], color: "#16d9c9", opacity: 0.16, finish: "glass", explanation: "The flexible outer boundary that controls what enters and leaves the cell." },
-            { id: `${id}-l0-p1`, label: "Cytoplasm", shape: "sphere", position: [0, 0, 0], scale: [2.45, 2.45, 2.45], color: "#0e7c74", opacity: 0.12, finish: "glass", explanation: "The jelly-like fluid that fills the cell and suspends the organelles." },
+            { id: `${id}-l0-p1`, label: "Cytoplasm", shape: "sphere", position: [0, 0, 0], scale: [2.3, 2.3, 2.3], color: "#0e7c74", opacity: 0.05, finish: "glass", explanation: "The jelly-like fluid that fills the cell and suspends the organelles." },
             { id: `${id}-l0-p2`, label: "Nucleus", shape: "sphere", position: [0.2, 0.1, 0], scale: [0.85, 0.85, 0.85], color: "#7c5cff", finish: "matte", explanation: "The control center that holds DNA — the cell's instruction manual." },
             { id: `${id}-l0-p3`, label: "Nucleolus", shape: "sphere", position: [0.35, 0.25, 0.15], scale: [0.32, 0.32, 0.32], color: "#5b3fd6", finish: "matte", explanation: "A dense spot inside the nucleus that builds ribosomes." },
             { id: `${id}-l0-p4`, label: "Mitochondrion", shape: "capsule", position: [1.3, 0.5, 0.3], scale: [0.55, 0.55, 0.55], rotation: [0, 0, 35], color: "#ff7c5c", finish: "matte", explanation: "The powerhouse — converts food into usable energy (ATP)." },
