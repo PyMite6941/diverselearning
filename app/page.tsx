@@ -51,7 +51,24 @@ const FEATURES = [
 export default function Home() {
   const auth = useAuth();
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  // Mount the heavy 3D hero only once the page is interactive, so the landing
+  // paints and becomes usable immediately instead of waiting on three.js.
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      idleId = (window as any).requestIdleCallback(() => setReady(true));
+    } else {
+      timeoutId = setTimeout(() => setReady(true), 200);
+    }
+    return () => {
+      if (idleId !== undefined) (window as any).cancelIdleCallback?.(idleId);
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+    };
+  }, []);
 
   // A real, interactive model as the hero — the product, live, on first sight.
   const heroModel = useMemo(() => sampleCourse().lessons[0].model, []);
@@ -114,11 +131,12 @@ export default function Home() {
         {/* Live 3D preview */}
         <div className="relative">
           <div className="glass h-[340px] overflow-hidden rounded-3xl sm:h-[420px]">
-            {mounted && heroModel ? (
+            {mounted && ready && heroModel ? (
               <ModelViewer model={heroModel} accent="#16d9c9" />
             ) : (
-              <div className="flex h-full items-center justify-center text-sm text-white/40">
-                Loading 3D preview…
+              <div className="flex h-full flex-col items-center justify-center gap-3">
+                <div className="animate-float text-5xl">🧬</div>
+                <span className="text-sm text-white/40">Loading 3D preview…</span>
               </div>
             )}
           </div>

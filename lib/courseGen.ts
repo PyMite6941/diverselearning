@@ -46,7 +46,7 @@ Return STRICT JSON only (no markdown, no commentary) matching this shape:
 }
 
 Accuracy rules (critical):
-- Use 6 to 14 parts per model — enough to capture the real structure, not a
+- Use 5 to 9 parts per model — enough to capture the real structure, not a
   cartoon. Include the parts that actually exist in the real object.
 - Get PROPORTIONS right: scale parts relative to each other as they truly are.
 - Get the SPATIAL LAYOUT right: position and rotate parts so their arrangement
@@ -57,9 +57,9 @@ Accuracy rules (critical):
   casing/membrane/body, so inner parts remain visible.
 - Use "metal" finish for hardware/mechanical parts, "glow" for light/energy.
 - Labels must use the correct real-world terminology.
-- Produce EXACTLY 4 to 6 lessons — never fewer than 4 — and EVERY one of them
-  must have a fully populated "model" with 6-14 parts.
-- Teaching text concrete and friendly. No fluff.`;
+- Produce EXACTLY 4 lessons, and EVERY one must have a fully populated "model"
+  with 5-9 parts.
+- Teaching text: 2-3 short, concrete paragraphs per lesson. No fluff.`;
 
 function slug(): string {
   return Math.random().toString(36).slice(2, 10);
@@ -148,8 +148,8 @@ export async function generateCourse(
       role: "user" as const,
       content: `Learner interest: "${topic}". Target level: ${level}.
 The course MUST be about "${topic}" specifically.
-Create exactly 5 lessons, and EVERY lesson must include a fully populated 3D
-"model" with 6-14 accurately-arranged parts. Generate the course JSON now.`,
+Create exactly 4 lessons, and EVERY lesson must include a fully populated 3D
+"model" with 5-9 accurately-arranged parts. Generate the course JSON now.`,
     },
   ];
 
@@ -158,7 +158,8 @@ Create exactly 5 lessons, and EVERY lesson must include a fully populated 3D
     try {
       const content = await chat(messages, {
         json: true,
-        temperature: attempt === 0 ? 0.7 : 0.4,
+        temperature: attempt === 0 ? 0.6 : 0.4,
+        maxTokens: 7000,
       });
       const raw = extractJson(content);
       if (!raw) continue;

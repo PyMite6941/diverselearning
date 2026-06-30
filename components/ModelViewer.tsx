@@ -7,7 +7,6 @@ import {
   Html,
   Float,
   ContactShadows,
-  Environment,
   Edges,
 } from "@react-three/drei";
 import * as THREE from "three";
@@ -18,15 +17,15 @@ const DEG = Math.PI / 180;
 function PartGeometry({ shape }: { shape: ModelPart["shape"] }) {
   switch (shape) {
     case "sphere":
-      return <sphereGeometry args={[0.5, 48, 48]} />;
+      return <sphereGeometry args={[0.5, 32, 32]} />;
     case "cylinder":
-      return <cylinderGeometry args={[0.5, 0.5, 1, 64]} />;
+      return <cylinderGeometry args={[0.5, 0.5, 1, 40]} />;
     case "cone":
-      return <coneGeometry args={[0.5, 1, 64]} />;
+      return <coneGeometry args={[0.5, 1, 40]} />;
     case "torus":
-      return <torusGeometry args={[0.5, 0.18, 32, 96]} />;
+      return <torusGeometry args={[0.5, 0.18, 20, 64]} />;
     case "capsule":
-      return <capsuleGeometry args={[0.35, 0.6, 16, 32]} />;
+      return <capsuleGeometry args={[0.35, 0.6, 12, 24]} />;
     case "tetrahedron":
       return <tetrahedronGeometry args={[0.6]} />;
     case "octahedron":
@@ -36,7 +35,7 @@ function PartGeometry({ shape }: { shape: ModelPart["shape"] }) {
     case "plane":
       return <planeGeometry args={[1, 1]} />;
     case "torusKnot":
-      return <torusKnotGeometry args={[0.4, 0.13, 128, 24]} />;
+      return <torusKnotGeometry args={[0.4, 0.13, 96, 16]} />;
     default:
       return <boxGeometry args={[1, 1, 1]} />;
   }
@@ -260,11 +259,15 @@ export default function ModelViewer({
       <Canvas
         camera={{ position: [4.5, 3, 6], fov: 45 }}
         onPointerMissed={() => setSelected(null)}
-        dpr={[1, 2]}
+        dpr={[1, 1.5]}
       >
         <color attach="background" args={["#070710"]} />
-        <ambientLight intensity={0.65} />
-        <directionalLight position={[5, 6, 4]} intensity={1.15} />
+        {/* Cheap lighting instead of an HDR Environment (which downloads a
+            multi-MB map from a CDN on every view) — far faster first render. */}
+        <ambientLight intensity={0.7} />
+        <hemisphereLight args={["#cdd6ff", "#0a0a16", 0.7]} />
+        <directionalLight position={[5, 6, 4]} intensity={1.2} />
+        <directionalLight position={[-3, 2, -4]} intensity={0.4} />
         <pointLight position={[-4, -2, -3]} intensity={0.7} color={accent} />
         <Suspense fallback={null}>
           <Float
@@ -298,8 +301,9 @@ export default function ModelViewer({
             scale={14}
             blur={2.6}
             far={4}
+            resolution={256}
+            frames={1}
           />
-          <Environment preset="city" />
         </Suspense>
         <OrbitControls
           enablePan={false}

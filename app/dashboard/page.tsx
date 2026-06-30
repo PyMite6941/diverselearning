@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/useAuth";
 import { fetchCloudCourses } from "@/lib/db";
@@ -11,51 +12,72 @@ import AuthModal from "@/components/AuthModal";
 import AccessibilityMenu from "@/components/AccessibilityMenu";
 
 export default function Dashboard() {
+  const router = useRouter();
   const cards = useStore((s) => s.cards);
-  const courses = useStore((s) => s.courses);
-  const addCourse = useStore((s) => s.addCourse);
   const loadAll = useStore((s) => s.loadAll);
   const reset = useStore((s) => s.reset);
 
   const auth = useAuth();
   const [gen, setGen] = useState(false);
-  const [authOpen, setAuthOpen] = useState(false);
   const [menu, setMenu] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [loadingCourses, setLoadingCourses] = useState(true);
 
   useEffect(() => setMounted(true), []);
 
-  // When a user signs in, pull their courses from the cloud and show them.
+  // Sign-in is required: pull the user's courses from the cloud once in.
   useEffect(() => {
     if (!mounted || auth.loading) return;
-    if (auth.user) {
-      fetchCloudCourses()
-        .then((res) => {
-          if (res) loadAll(res.courses, res.cards);
-        })
-        .catch(() => {});
+    if (!auth.user) {
+      reset();
+      setLoadingCourses(false);
+      return;
     }
-  }, [mounted, auth.loading, auth.user, loadAll]);
+    setLoadingCourses(true);
+    fetchCloudCourses()
+      .then((res) => {
+        if (res) loadAll(res.courses, res.cards);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingCourses(false));
+  }, [mounted, auth.loading, auth.user, loadAll, reset]);
 
-  // First-run seed (local-only mode, signed-out): don't leave the board empty.
-  useEffect(() => {
-    if (!mounted || auth.loading) return;
-    if (
-      !auth.cloudEnabled &&
-      courses.length === 0 &&
-      !localStorage.getItem("dl-seeded")
-    ) {
-      import("@/lib/courseGen").then(({ sampleCourse }) => {
-        addCourse(sampleCourse());
-        localStorage.setItem("dl-seeded", "1");
-      });
-    }
-  }, [mounted, auth.loading, auth.cloudEnabled, courses.length, addCourse]);
+  if (!mounted || auth.loading) {
+    return (
+      <main className="grid-bg flex min-h-screen items-center justify-center">
+        <div className="animate-float text-4xl">🧠</div>
+      </main>
+    );
+  }
 
-  if (!mounted) return null;
+  // Backend misconfiguration guard (shouldn't happen in a normal deploy).
+  if (!auth.cloudEnabled) {
+    return (
+      <main className="grid-bg flex min-h-screen items-center justify-center px-6">
+        <div className="glass-strong max-w-md rounded-2xl p-7 text-center">
+          <h1 className="text-xl font-bold">Backend not configured</h1>
+          <p className="mt-2 text-sm text-white/60">
+            This deployment is missing its Supabase keys
+            (<code>NEXT_PUBLIC_SUPABASE_URL</code> /{" "}
+            <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>). Accounts are required to
+            use DiverseLearning.
+          </p>
+          <Link href="/" className="mt-5 inline-block text-accent underline">
+            ← Back home
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
-  const signedIn = !!auth.user;
-  const needsAccount = auth.cloudEnabled && !signedIn;
+  // Required sign-in gate.
+  if (!auth.user) {
+    return (
+      <main className="grid-bg flex min-h-screen items-center justify-center">
+        <AuthModal auth={auth} onClose={() => router.push("/")} />
+      </main>
+    );
+  }
 
   return (
     <main className="grid-bg relative flex h-screen flex-col overflow-hidden">
@@ -67,11 +89,7 @@ export default function Dashboard() {
               Diverse<span className="grad-text">Learning</span>
             </h1>
           </Link>
-          <p className="text-xs text-white/40">
-            {signedIn
-              ? `Signed in as ${auth.user!.email}`
-              : "Your personal, interactive 3D classroom"}
-          </p>
+          <p className="text-xs text-white/40">Signed in as {auth.user.email}</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -83,64 +101,42 @@ export default function Dashboard() {
             + New course
           </button>
 
-          {auth.cloudEnabled &&
-            (signedIn ? (
-              <div className="relative">
+          <div className="relative">
+            <button
+              onClick={() => setMenu((m) => !m)}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-sm font-bold uppercase ring-1 ring-white/15 transition hover:bg-white/20"
+              title={auth.user.email ?? "Account"}
+            >
+              {(auth.user.email ?? "?")[0]}
+            </button>
+            {menu && (
+              <div className="glass-strong absolute right-0 mt-2 w-44 rounded-xl p-1.5 text-sm">
+                <div className="truncate px-3 py-2 text-xs text-white/40">
+                  {auth.user.email}
+                </div>
                 <button
-                  onClick={() => setMenu((m) => !m)}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-sm font-bold uppercase ring-1 ring-white/15 transition hover:bg-white/20"
-                  title={auth.user!.email ?? "Account"}
+                  onClick={async () => {
+                    setMenu(false);
+                    await auth.signOut();
+                    reset();
+                  }}
+                  className="w-full rounded-lg px-3 py-2 text-left transition hover:bg-white/10"
                 >
-                  {(auth.user!.email ?? "?")[0]}
+                  Sign out
                 </button>
-                {menu && (
-                  <div className="glass-strong absolute right-0 mt-2 w-44 rounded-xl p-1.5 text-sm">
-                    <div className="truncate px-3 py-2 text-xs text-white/40">
-                      {auth.user!.email}
-                    </div>
-                    <button
-                      onClick={async () => {
-                        setMenu(false);
-                        await auth.signOut();
-                        reset();
-                      }}
-                      className="w-full rounded-lg px-3 py-2 text-left transition hover:bg-white/10"
-                    >
-                      Sign out
-                    </button>
-                  </div>
-                )}
               </div>
-            ) : (
-              <button
-                onClick={() => setAuthOpen(true)}
-                className="rounded-2xl border border-white/15 px-5 py-2.5 text-sm font-medium transition hover:bg-white/10"
-              >
-                Sign in
-              </button>
-            ))}
+            )}
+          </div>
         </div>
       </header>
 
-      {/* Sign-in nudge banner for cloud mode */}
-      {needsAccount && (
-        <div className="mx-8 mb-2 flex shrink-0 items-center justify-between rounded-2xl border border-accent/20 bg-accent/10 px-5 py-3 text-sm">
-          <span className="text-white/80">
-            Sign in to save your courses to your account and open them on any device.
-          </span>
-          <button
-            onClick={() => setAuthOpen(true)}
-            className="ml-4 shrink-0 rounded-xl bg-white/10 px-4 py-1.5 font-medium transition hover:bg-white/20"
-          >
-            Sign in
-          </button>
-        </div>
-      )}
-
-      {/* Draggable canvas — fills the space between header and footer, clips its
-          own overflow so dragged tiles never spill past the footer. */}
+      {/* Draggable canvas */}
       <section className="relative min-h-0 w-full flex-1 overflow-hidden">
-        {cards.length === 0 ? (
+        {loadingCourses ? (
+          <div className="flex h-full items-center justify-center text-sm text-white/40">
+            Loading your courses…
+          </div>
+        ) : cards.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-center">
             <div className="animate-float text-6xl">🧠</div>
             <h2 className="mt-6 text-xl font-semibold text-white/80">
@@ -183,22 +179,13 @@ export default function Dashboard() {
           </span>
           <span className="text-white/20">|</span>
           <span className="inline-flex items-center gap-1.5">
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${
-                signedIn
-                  ? "bg-emerald-400"
-                  : auth.cloudEnabled
-                  ? "bg-amber-400"
-                  : "bg-white/30"
-              }`}
-            />
-            {signedIn ? "Synced" : auth.cloudEnabled ? "Not signed in" : "Local only"}
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            Synced
           </span>
         </span>
       </footer>
 
       {gen && <GenerateModal onClose={() => setGen(false)} />}
-      {authOpen && <AuthModal auth={auth} onClose={() => setAuthOpen(false)} />}
     </main>
   );
 }

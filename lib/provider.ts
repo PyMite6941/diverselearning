@@ -23,7 +23,8 @@ function providers(): Provider[] {
       name: "groq",
       url: "https://api.groq.com/openai/v1/chat/completions",
       key: process.env.GROQ_API_KEY,
-      // Current Groq workhorses (llama-3.x deprecated June 2026).
+      // 120b is reliable at filling every lesson/model; with reasoning_effort
+      // "low" it's still fast on Groq. 20b is the fallback.
       models: ["openai/gpt-oss-120b", "openai/gpt-oss-20b"],
     },
     {
@@ -49,7 +50,7 @@ export function hasAnyProvider(): boolean {
  */
 export async function chat(
   messages: ChatMessage[],
-  opts: { json?: boolean; temperature?: number } = {}
+  opts: { json?: boolean; temperature?: number; maxTokens?: number } = {}
 ): Promise<string> {
   const errors: string[] = [];
 
@@ -71,6 +72,10 @@ export async function chat(
             messages,
             temperature: opts.temperature ?? 0.7,
             ...(opts.json ? { response_format: { type: "json_object" } } : {}),
+            // gpt-oss are reasoning models — low effort keeps generations snappy
+            // (they still produce solid structured JSON).
+            ...(p.name === "groq" ? { reasoning_effort: "low" } : {}),
+            ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),
           }),
         });
 
