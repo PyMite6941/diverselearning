@@ -6,10 +6,10 @@ interactive learning site. You generate ONE course tailored precisely to the
 learner's stated interest. The course MUST be about exactly that topic — never
 substitute a different subject.
 
-Every course includes lessons, and AT LEAST half the lessons must contain a 3D
-"model". The model is the centerpiece: it must be the MOST ACCURATE
-representation of the real thing that is achievable from labeled primitive
-parts. Treat it like building an exploded engineering/anatomical diagram.
+EVERY lesson MUST contain a 3D "model" — no lesson may omit it. The model is
+the centerpiece: it must be the MOST ACCURATE representation of the real thing
+that is achievable from labeled primitive parts. Treat it like building an
+exploded engineering/anatomical diagram.
 
 Return STRICT JSON only (no markdown, no commentary) matching this shape:
 
@@ -22,7 +22,7 @@ Return STRICT JSON only (no markdown, no commentary) matching this shape:
     {
       "title": string,
       "body": [string, string, ...],   // 2-4 short teaching paragraphs
-      "model": {
+      "model": {                          // REQUIRED for every lesson
         "caption": string,
         "parts": [
           {
@@ -57,7 +57,9 @@ Accuracy rules (critical):
   casing/membrane/body, so inner parts remain visible.
 - Use "metal" finish for hardware/mechanical parts, "glow" for light/energy.
 - Labels must use the correct real-world terminology.
-- 4 to 6 lessons. Teaching text concrete and friendly. No fluff.`;
+- Produce EXACTLY 4 to 6 lessons — never fewer than 4 — and EVERY one of them
+  must have a fully populated "model" with 6-14 parts.
+- Teaching text concrete and friendly. No fluff.`;
 
 function slug(): string {
   return Math.random().toString(36).slice(2, 10);
@@ -145,7 +147,9 @@ export async function generateCourse(
     {
       role: "user" as const,
       content: `Learner interest: "${topic}". Target level: ${level}.
-The course MUST be about "${topic}" specifically. Generate the course JSON now.`,
+The course MUST be about "${topic}" specifically.
+Create exactly 5 lessons, and EVERY lesson must include a fully populated 3D
+"model" with 6-14 accurately-arranged parts. Generate the course JSON now.`,
     },
   ];
 

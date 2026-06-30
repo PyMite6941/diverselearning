@@ -57,10 +57,10 @@ export default function Dashboard() {
   const needsAccount = auth.cloudEnabled && !signedIn;
 
   return (
-    <main className="grid-bg relative min-h-screen overflow-hidden">
+    <main className="grid-bg relative flex h-screen flex-col overflow-hidden">
       {/* Header */}
-      <header className="pointer-events-none sticky top-0 z-40 flex items-center justify-between px-8 py-6">
-        <div className="pointer-events-auto">
+      <header className="z-40 flex shrink-0 items-center justify-between px-8 py-6">
+        <div>
           <h1 className="text-2xl font-bold tracking-tight">
             Diverse<span className="grad-text">Learning</span>
           </h1>
@@ -71,7 +71,7 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="pointer-events-auto flex items-center gap-3">
+        <div className="flex items-center gap-3">
           <AccessibilityMenu />
           <button
             onClick={() => setGen(true)}
@@ -121,7 +121,7 @@ export default function Dashboard() {
 
       {/* Sign-in nudge banner for cloud mode */}
       {needsAccount && (
-        <div className="pointer-events-auto mx-8 mb-2 flex items-center justify-between rounded-2xl border border-accent/20 bg-accent/10 px-5 py-3 text-sm">
+        <div className="mx-8 mb-2 flex shrink-0 items-center justify-between rounded-2xl border border-accent/20 bg-accent/10 px-5 py-3 text-sm">
           <span className="text-white/80">
             Sign in to save your courses to your account and open them on any device.
           </span>
@@ -134,8 +134,9 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Draggable canvas */}
-      <section className="relative h-[calc(100vh-96px)] w-full">
+      {/* Draggable canvas — fills the space between header and footer, clips its
+          own overflow so dragged tiles never spill past the footer. */}
+      <section className="relative min-h-0 w-full flex-1 overflow-hidden">
         {cards.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-center">
             <div className="animate-float text-6xl">🧠</div>
@@ -156,13 +157,42 @@ export default function Dashboard() {
         ) : (
           cards.map((card) => <CourseTile key={card.id} card={card} />)
         )}
-
-        {cards.length > 0 && (
-          <div className="pointer-events-none absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-black/40 px-4 py-1.5 text-xs text-white/40 backdrop-blur">
-            Tip: drag cards to rearrange your board · click to open
-          </div>
-        )}
       </section>
+
+      {/* Footer */}
+      <footer className="glass z-30 flex shrink-0 items-center justify-between gap-4 border-t border-white/10 px-8 py-3 text-xs text-white/50">
+        <span className="flex items-center gap-2">
+          <span className="font-semibold text-white/70">
+            Diverse<span className="text-accent">Learning</span>
+          </span>
+          <span className="hidden text-white/30 sm:inline">
+            · interactive 3D courses
+          </span>
+        </span>
+
+        <span className="hidden text-white/40 md:inline">
+          Drag cards to rearrange · click to open
+        </span>
+
+        <span className="flex items-center gap-2">
+          <span>
+            {cards.length} course{cards.length === 1 ? "" : "s"}
+          </span>
+          <span className="text-white/20">|</span>
+          <span className="inline-flex items-center gap-1.5">
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                signedIn
+                  ? "bg-emerald-400"
+                  : auth.cloudEnabled
+                  ? "bg-amber-400"
+                  : "bg-white/30"
+              }`}
+            />
+            {signedIn ? "Synced" : auth.cloudEnabled ? "Not signed in" : "Local only"}
+          </span>
+        </span>
+      </footer>
 
       {gen && <GenerateModal onClose={() => setGen(false)} />}
       {authOpen && <AuthModal auth={auth} onClose={() => setAuthOpen(false)} />}
