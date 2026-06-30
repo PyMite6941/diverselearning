@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateCourse } from "@/lib/courseGen";
+import { generateCourse, CourseGenError } from "@/lib/courseGen";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -27,6 +27,11 @@ export async function POST(req: NextRequest) {
     const course = await generateCourse(topic.trim(), level || "beginner");
     return NextResponse.json({ course });
   } catch (e) {
+    if (e instanceof CourseGenError) {
+      // 503 when unconfigured, 502 when the model failed to produce a course.
+      const status = e.code === "no_provider" ? 503 : 502;
+      return NextResponse.json({ error: e.message, code: e.code }, { status });
+    }
     return NextResponse.json(
       { error: (e as Error).message || "Generation failed." },
       { status: 500 }

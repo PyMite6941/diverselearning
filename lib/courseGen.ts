@@ -1,10 +1,15 @@
 import { chat, hasAnyProvider } from "./provider";
 import type { Course } from "./types";
 
-const SYSTEM = `You are a curriculum designer for an interactive 3D learning site.
-You generate a single course tailored to ONE learner's stated interest.
-Every course must include lessons, and AT LEAST half the lessons must contain a
-3D "model" so the concept can be visualized and broken down part-by-part in the browser.
+const SYSTEM = `You are a curriculum designer AND a technical 3D modeler for an
+interactive learning site. You generate ONE course tailored precisely to the
+learner's stated interest. The course MUST be about exactly that topic — never
+substitute a different subject.
+
+Every course includes lessons, and AT LEAST half the lessons must contain a 3D
+"model". The model is the centerpiece: it must be the MOST ACCURATE
+representation of the real thing that is achievable from labeled primitive
+parts. Treat it like building an exploded engineering/anatomical diagram.
 
 Return STRICT JSON only (no markdown, no commentary) matching this shape:
 
@@ -12,21 +17,26 @@ Return STRICT JSON only (no markdown, no commentary) matching this shape:
   "title": string,
   "subtitle": string,
   "level": "beginner" | "intermediate" | "advanced",
-  "accent": string (a hex color like "#7c5cff" that fits the topic),
+  "accent": string (hex color fitting the topic),
   "lessons": [
     {
       "title": string,
       "body": [string, string, ...],   // 2-4 short teaching paragraphs
-      "model": {                        // optional but encouraged
+      "model": {
         "caption": string,
         "parts": [
           {
-            "label": string,
-            "shape": "box" | "sphere" | "cylinder" | "cone" | "torus",
-            "position": [number, number, number],  // keep within -3..3
-            "scale": [number, number, number],      // optional, ~0.3..2
-            "color": string (hex),
-            "explanation": string   // what this part is / does
+            "label": string,            // correct technical/anatomical name
+            "shape": "box" | "sphere" | "cylinder" | "cone" | "torus"
+                     | "capsule" | "tetrahedron" | "octahedron" | "ring"
+                     | "plane" | "torusKnot",
+            "position": [x, y, z],       // within -3..3
+            "scale": [x, y, z],          // reflect TRUE relative proportions
+            "rotation": [x, y, z],       // DEGREES; orient parts realistically
+            "color": string (hex),       // realistic, distinct per part
+            "opacity": number,           // 0..1; < 1 for outer shells/membranes
+            "finish": "matte" | "metal" | "glass" | "glow",
+            "explanation": string
           }
         ]
       },
@@ -35,13 +45,19 @@ Return STRICT JSON only (no markdown, no commentary) matching this shape:
   ]
 }
 
-Rules:
-- 4 to 6 lessons.
-- Models should be a sensible spatial breakdown of a real thing (e.g. a cell,
-  an engine, the solar system, a neural net layer, a guitar). Use 3-7 parts,
-  arranged so they read as a coherent assembly.
-- Positions must keep parts visible and roughly centered around origin.
-- Keep teaching text concrete and friendly. No fluff.`;
+Accuracy rules (critical):
+- Use 6 to 14 parts per model — enough to capture the real structure, not a
+  cartoon. Include the parts that actually exist in the real object.
+- Get PROPORTIONS right: scale parts relative to each other as they truly are.
+- Get the SPATIAL LAYOUT right: position and rotate parts so their arrangement
+  matches reality (e.g. planets in order from the sun; engine stages in line;
+  organelles inside the membrane).
+- Pick the closest shape for each part and use "rotation" to align it.
+- Use a translucent "glass" outer shell (low opacity) when the real object has a
+  casing/membrane/body, so inner parts remain visible.
+- Use "metal" finish for hardware/mechanical parts, "glow" for light/energy.
+- Labels must use the correct real-world terminology.
+- 4 to 6 lessons. Teaching text concrete and friendly. No fluff.`;
 
 function slug(): string {
   return Math.random().toString(36).slice(2, 10);
@@ -63,7 +79,10 @@ function hydrate(raw: any, topic: string): Course {
             shape: p.shape ?? "box",
             position: p.position ?? [0, 0, 0],
             scale: p.scale,
+            rotation: p.rotation,
             color: p.color ?? "#7c5cff",
+            opacity: typeof p.opacity === "number" ? p.opacity : undefined,
+            finish: p.finish,
             explanation: p.explanation ?? "",
           })),
         }
@@ -83,35 +102,73 @@ function hydrate(raw: any, topic: string): Course {
   };
 }
 
+export class CourseGenError extends Error {
+  code: "no_provider" | "failed";
+  constructor(code: "no_provider" | "failed", message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+/** Pull the JSON object out of a model response even if it wrapped it in prose
+ *  or fences. Returns null if no parseable object is found. */
+function extractJson(text: string): any | null {
+  const cleaned = text.replace(/```json/gi, "").replace(/```/g, "").trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start === -1 || end === -1 || end <= start) return null;
+  try {
+    return JSON.parse(cleaned.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Generate the course the learner actually asked for. Requires an AI key —
+ * if none is configured (or generation keeps failing) this THROWS rather than
+ * returning an unrelated sample, so the button never produces the wrong course.
+ */
 export async function generateCourse(
   topic: string,
   level = "beginner"
 ): Promise<Course> {
   if (!hasAnyProvider()) {
-    return sampleCourse(topic);
-  }
-
-  try {
-    const content = await chat(
-      [
-        { role: "system", content: SYSTEM },
-        {
-          role: "user",
-          content: `Learner interest: "${topic}". Target level: ${level}. Generate the course JSON.`,
-        },
-      ],
-      { json: true, temperature: 0.8 }
+    throw new CourseGenError(
+      "no_provider",
+      "AI course generation isn't configured yet. Add a GROQ_API_KEY or OPENROUTER_API_KEY to create real courses."
     );
-
-    // Models occasionally wrap JSON in fences despite instructions.
-    const cleaned = content.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
-    const raw = JSON.parse(cleaned);
-    const course = hydrate(raw, topic);
-    if (course.lessons.length === 0) return sampleCourse(topic);
-    return course;
-  } catch {
-    return sampleCourse(topic);
   }
+
+  const messages = [
+    { role: "system" as const, content: SYSTEM },
+    {
+      role: "user" as const,
+      content: `Learner interest: "${topic}". Target level: ${level}.
+The course MUST be about "${topic}" specifically. Generate the course JSON now.`,
+    },
+  ];
+
+  // Two attempts: the second nudges harder for valid, on-topic JSON.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const content = await chat(messages, {
+        json: true,
+        temperature: attempt === 0 ? 0.7 : 0.4,
+      });
+      const raw = extractJson(content);
+      if (!raw) continue;
+      const course = hydrate(raw, topic);
+      if (course.lessons.length > 0) return course;
+    } catch {
+      // try the next attempt / model
+    }
+  }
+
+  throw new CourseGenError(
+    "failed",
+    `Couldn't generate a course for "${topic}". Please try again or rephrase.`
+  );
 }
 
 /** Built-in fallback so the UI is fully functional with zero API keys. */
@@ -135,13 +192,19 @@ export function sampleCourse(topic = "The Animal Cell"): Course {
           "Rotate the model and click any part to learn what it does.",
         ],
         model: {
-          caption: "A simplified animal cell with its core organelles",
+          caption: "An animal cell — translucent membrane with its organelles inside",
           parts: [
-            { id: `${id}-l0-p0`, label: "Cell Membrane", shape: "sphere", position: [0, 0, 0], scale: [2.4, 2.4, 2.4], color: "#16d9c9", explanation: "The flexible outer boundary that controls what enters and leaves the cell." },
-            { id: `${id}-l0-p1`, label: "Nucleus", shape: "sphere", position: [0, 0, 0], scale: [0.8, 0.8, 0.8], color: "#7c5cff", explanation: "The control center that holds DNA — the cell's instruction manual." },
-            { id: `${id}-l0-p2`, label: "Mitochondrion", shape: "cylinder", position: [1.1, 0.6, 0.4], scale: [0.3, 0.6, 0.3], color: "#ff7c5c", explanation: "The powerhouse — it converts food into usable energy (ATP)." },
-            { id: `${id}-l0-p3`, label: "Ribosome", shape: "sphere", position: [-1, -0.7, 0.6], scale: [0.18, 0.18, 0.18], color: "#ffd166", explanation: "Tiny machines that build proteins from amino acids." },
-            { id: `${id}-l0-p4`, label: "Vacuole", shape: "sphere", position: [-0.9, 0.9, -0.5], scale: [0.5, 0.5, 0.5], color: "#a78bfa", explanation: "A storage bubble for water, nutrients, and waste." },
+            { id: `${id}-l0-p0`, label: "Cell Membrane", shape: "sphere", position: [0, 0, 0], scale: [2.6, 2.6, 2.6], color: "#16d9c9", opacity: 0.16, finish: "glass", explanation: "The flexible outer boundary that controls what enters and leaves the cell." },
+            { id: `${id}-l0-p1`, label: "Cytoplasm", shape: "sphere", position: [0, 0, 0], scale: [2.45, 2.45, 2.45], color: "#0e7c74", opacity: 0.12, finish: "glass", explanation: "The jelly-like fluid that fills the cell and suspends the organelles." },
+            { id: `${id}-l0-p2`, label: "Nucleus", shape: "sphere", position: [0.2, 0.1, 0], scale: [0.85, 0.85, 0.85], color: "#7c5cff", finish: "matte", explanation: "The control center that holds DNA — the cell's instruction manual." },
+            { id: `${id}-l0-p3`, label: "Nucleolus", shape: "sphere", position: [0.35, 0.25, 0.15], scale: [0.32, 0.32, 0.32], color: "#5b3fd6", finish: "matte", explanation: "A dense spot inside the nucleus that builds ribosomes." },
+            { id: `${id}-l0-p4`, label: "Mitochondrion", shape: "capsule", position: [1.3, 0.5, 0.3], scale: [0.55, 0.55, 0.55], rotation: [0, 0, 35], color: "#ff7c5c", finish: "matte", explanation: "The powerhouse — converts food into usable energy (ATP)." },
+            { id: `${id}-l0-p5`, label: "Mitochondrion", shape: "capsule", position: [-1.2, -0.9, 0.4], scale: [0.5, 0.5, 0.5], rotation: [10, 0, -60], color: "#ff7c5c", finish: "matte", explanation: "Cells that work hard pack in many mitochondria." },
+            { id: `${id}-l0-p6`, label: "Rough ER", shape: "torus", position: [-0.7, 0.6, 0.2], scale: [1.1, 1.1, 0.7], rotation: [70, 20, 0], color: "#ffd166", finish: "matte", explanation: "Folded membranes studded with ribosomes that fold and ship proteins." },
+            { id: `${id}-l0-p7`, label: "Golgi Apparatus", shape: "torus", position: [1.0, -0.9, -0.4], scale: [0.7, 0.7, 0.5], rotation: [80, 0, 10], color: "#4cc9f0", finish: "matte", explanation: "Packages and labels proteins for delivery, like a post office." },
+            { id: `${id}-l0-p8`, label: "Ribosome", shape: "sphere", position: [-1.4, 0.2, 0.9], scale: [0.14, 0.14, 0.14], color: "#fff3b0", finish: "matte", explanation: "Tiny machines that build proteins from amino acids." },
+            { id: `${id}-l0-p9`, label: "Lysosome", shape: "sphere", position: [0.4, -1.4, 0.6], scale: [0.32, 0.32, 0.32], color: "#f15bb5", finish: "matte", explanation: "Contains enzymes that break down waste and worn-out parts." },
+            { id: `${id}-l0-p10`, label: "Vacuole", shape: "sphere", position: [-0.5, 1.3, -0.6], scale: [0.5, 0.5, 0.5], color: "#a78bfa", opacity: 0.6, finish: "glass", explanation: "A storage bubble for water, nutrients, and waste." },
           ],
         },
         check: { question: "Which organelle stores the cell's DNA?", answer: "The nucleus." },
@@ -154,11 +217,14 @@ export function sampleCourse(topic = "The Animal Cell"): Course {
           "Cells that work hard — like muscle cells — pack in thousands of mitochondria.",
         ],
         model: {
-          caption: "A mitochondrion, broken into its working parts",
+          caption: "A mitochondrion — translucent outer membrane, inner cristae exposed",
           parts: [
-            { id: `${id}-l1-p0`, label: "Outer Membrane", shape: "cylinder", position: [0, 0, 0], scale: [1.4, 1.6, 1.4], color: "#ff7c5c", explanation: "A smooth wall enclosing the whole organelle." },
-            { id: `${id}-l1-p1`, label: "Cristae (inner folds)", shape: "torus", position: [0, 0, 0], scale: [0.9, 0.9, 0.9], color: "#ffd166", explanation: "Folded inner membranes that pack in surface area for energy reactions." },
-            { id: `${id}-l1-p2`, label: "Matrix", shape: "sphere", position: [0, 0, 0], scale: [0.7, 0.7, 0.7], color: "#7c5cff", explanation: "The gel-like core where the energy-making reactions happen." },
+            { id: `${id}-l1-p0`, label: "Outer Membrane", shape: "capsule", position: [0, 0, 0], scale: [1.7, 1.7, 1.7], rotation: [0, 0, 90], color: "#ff7c5c", opacity: 0.18, finish: "glass", explanation: "A smooth outer wall enclosing the whole organelle." },
+            { id: `${id}-l1-p1`, label: "Inner Membrane", shape: "capsule", position: [0, 0, 0], scale: [1.45, 1.45, 1.45], rotation: [0, 0, 90], color: "#ffb35c", opacity: 0.3, finish: "glass", explanation: "A second membrane just inside the first, holding the energy machinery." },
+            { id: `${id}-l1-p2`, label: "Crista", shape: "torus", position: [-0.55, 0, 0], scale: [0.55, 0.55, 0.55], rotation: [0, 90, 0], color: "#ffd166", finish: "matte", explanation: "Folds of the inner membrane that pack in surface area for ATP reactions." },
+            { id: `${id}-l1-p3`, label: "Crista", shape: "torus", position: [0.1, 0, 0], scale: [0.55, 0.55, 0.55], rotation: [0, 90, 0], color: "#ffd166", finish: "matte", explanation: "More cristae — the more there are, the more energy the cell can make." },
+            { id: `${id}-l1-p4`, label: "Crista", shape: "torus", position: [0.75, 0, 0], scale: [0.55, 0.55, 0.55], rotation: [0, 90, 0], color: "#ffd166", finish: "matte", explanation: "Each fold carries the proteins of the electron transport chain." },
+            { id: `${id}-l1-p5`, label: "Matrix", shape: "capsule", position: [0, 0, 0], scale: [1.2, 1.2, 1.2], rotation: [0, 0, 90], color: "#7c5cff", opacity: 0.5, finish: "glow", explanation: "The gel-like core where the citric-acid (Krebs) cycle runs." },
           ],
         },
         check: { question: "What molecule do mitochondria produce?", answer: "ATP (energy)." },

@@ -1,10 +1,24 @@
 // Shared data model. Courses are generated as plain JSON so they can be
 // produced by the AI chain, cached, and rendered without code changes.
 
-export type PartShape = "box" | "sphere" | "cylinder" | "cone" | "torus";
+export type PartShape =
+  | "box"
+  | "sphere"
+  | "cylinder"
+  | "cone"
+  | "torus"
+  | "capsule"
+  | "tetrahedron"
+  | "octahedron"
+  | "ring"
+  | "plane"
+  | "torusKnot";
+
+export type PartFinish = "matte" | "metal" | "glass" | "glow";
 
 /** One labeled part of a 3D model. The viewer renders these primitives and
- *  lets the learner click each to break it down. */
+ *  lets the learner click each to break it down. Rotation, opacity and finish
+ *  let assemblies approximate real geometry far more faithfully. */
 export interface ModelPart {
   id: string;
   label: string;
@@ -13,7 +27,13 @@ export interface ModelPart {
   position: [number, number, number];
   /** scale [x, y, z] (defaults to 1,1,1) */
   scale?: [number, number, number];
+  /** rotation in DEGREES [x, y, z] (defaults to 0,0,0) */
+  rotation?: [number, number, number];
   color: string;
+  /** 0..1 — use < 1 for transparent shells/membranes so inner parts show. */
+  opacity?: number;
+  /** surface look; "glass" for casings/membranes, "metal" for hardware. */
+  finish?: PartFinish;
   /** Plain-language explanation of what this part is / does. */
   explanation: string;
 }

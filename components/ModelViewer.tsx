@@ -5,6 +5,48 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Html, Float, ContactShadows, Environment } from "@react-three/drei";
 import type { ModelPart, ModelSpec } from "@/lib/types";
 
+const DEG = Math.PI / 180;
+
+function PartGeometry({ shape }: { shape: ModelPart["shape"] }) {
+  switch (shape) {
+    case "sphere":
+      return <sphereGeometry args={[0.5, 64, 64]} />;
+    case "cylinder":
+      return <cylinderGeometry args={[0.5, 0.5, 1, 64]} />;
+    case "cone":
+      return <coneGeometry args={[0.5, 1, 64]} />;
+    case "torus":
+      return <torusGeometry args={[0.5, 0.18, 32, 96]} />;
+    case "capsule":
+      return <capsuleGeometry args={[0.35, 0.6, 16, 32]} />;
+    case "tetrahedron":
+      return <tetrahedronGeometry args={[0.6]} />;
+    case "octahedron":
+      return <octahedronGeometry args={[0.6]} />;
+    case "ring":
+      return <ringGeometry args={[0.3, 0.5, 48]} />;
+    case "plane":
+      return <planeGeometry args={[1, 1]} />;
+    case "torusKnot":
+      return <torusKnotGeometry args={[0.4, 0.13, 128, 24]} />;
+    default:
+      return <boxGeometry args={[1, 1, 1]} />;
+  }
+}
+
+function finishProps(finish: ModelPart["finish"]) {
+  switch (finish) {
+    case "metal":
+      return { roughness: 0.22, metalness: 0.9 };
+    case "glass":
+      return { roughness: 0.05, metalness: 0.1, baseOpacity: 0.22 };
+    case "glow":
+      return { roughness: 0.4, metalness: 0.1, extraEmissive: 0.5 };
+    default: // matte
+      return { roughness: 0.6, metalness: 0.08 };
+  }
+}
+
 function Part({
   part,
   active,
@@ -18,24 +60,24 @@ function Part({
 }) {
   const [hover, setHover] = useState(false);
   const scale = part.scale ?? [1, 1, 1];
+  const rotation = (part.rotation ?? [0, 0, 0]).map((d) => d * DEG) as [
+    number,
+    number,
+    number
+  ];
+  const fin = finishProps(part.finish);
+  const baseOpacity = part.opacity ?? fin.baseOpacity ?? 0.92;
 
-  const geom = (() => {
-    switch (part.shape) {
-      case "sphere":
-        return <sphereGeometry args={[0.5, 48, 48]} />;
-      case "cylinder":
-        return <cylinderGeometry args={[0.5, 0.5, 1, 48]} />;
-      case "cone":
-        return <coneGeometry args={[0.5, 1, 48]} />;
-      case "torus":
-        return <torusGeometry args={[0.5, 0.18, 24, 64]} />;
-      default:
-        return <boxGeometry args={[1, 1, 1]} />;
-    }
-  })();
+  const opacity = dim
+    ? Math.min(baseOpacity, 0.14)
+    : active
+    ? Math.max(baseOpacity, 0.96)
+    : hover
+    ? Math.min(1, baseOpacity + 0.08)
+    : baseOpacity;
 
   return (
-    <group position={part.position}>
+    <group position={part.position} rotation={rotation}>
       <mesh
         scale={scale as [number, number, number]}
         onClick={(e) => {
@@ -52,15 +94,18 @@ function Part({
           document.body.style.cursor = "default";
         }}
       >
-        {geom}
+        <PartGeometry shape={part.shape} />
         <meshStandardMaterial
           color={part.color}
-          roughness={0.35}
-          metalness={0.25}
-          transparent
-          opacity={dim ? 0.18 : active ? 1 : hover ? 0.95 : 0.85}
+          roughness={fin.roughness}
+          metalness={fin.metalness}
+          transparent={opacity < 1}
+          opacity={opacity}
           emissive={part.color}
-          emissiveIntensity={active ? 0.45 : hover ? 0.25 : 0.08}
+          emissiveIntensity={
+            (active ? 0.45 : hover ? 0.25 : 0.06) + (fin.extraEmissive ?? 0)
+          }
+          side={part.shape === "plane" || part.shape === "ring" ? 2 : 0}
         />
       </mesh>
       {(hover || active) && (
