@@ -24,6 +24,10 @@ Return STRICT JSON only (no markdown, no commentary) matching this shape:
       "body": [string, string, ...],   // 2-4 short teaching paragraphs
       "model": {                          // REQUIRED for every lesson
         "caption": string,
+        "cameraPosition": [x, y, z],    // optional; best viewpoint for THIS model
+                                         // e.g. [0, 6, 2] for a flat solar-system
+                                         // layout, [6, 2, 0] for a tall structure.
+                                         // Omit to use the default [4.5, 3, 6].
         "parts": [
           {
             "label": string,            // correct technical/anatomical name
@@ -36,6 +40,12 @@ Return STRICT JSON only (no markdown, no commentary) matching this shape:
             "color": string (hex),       // realistic, distinct per part
             "opacity": number,           // 0..1; < 1 for outer shells/membranes
             "finish": "matte" | "metal" | "glass" | "glow",
+            "metalness": number,         // 0..1 PBR override; omit to use finish
+                                         // default. 1 = pure metal, 0 = plastic.
+            "roughness": number,         // 0..1 PBR override; omit to use finish
+                                         // default. 0 = mirror, 1 = chalk-flat.
+            "emissiveIntensity": number, // extra glow brightness 0..1; use for
+                                         // light sources, plasma, bioluminescence.
             "explanation": string
           }
         ]
@@ -56,6 +66,15 @@ Accuracy rules (critical):
 - Use a translucent "glass" outer shell (low opacity) when the real object has a
   casing/membrane/body, so inner parts remain visible.
 - Use "metal" finish for hardware/mechanical parts, "glow" for light/energy.
+- Use metalness/roughness overrides when you need finer control than the finish
+  preset: e.g. roughness 0.05 for a mirror-polished ball bearing, metalness 0
+  and roughness 0.8 for a bone or rock surface.
+- Use emissiveIntensity > 0.3 for parts that genuinely emit light (star cores,
+  plasma, neon tubes, LED chips, bioluminescent cells).
+- Set cameraPosition when the default [4.5, 3, 6] would frame the model poorly:
+  flat layouts (solar system, circuit board) benefit from a top-down camera like
+  [0, 7, 1]; tall/narrow structures (DNA strand, skyscraper) look better
+  face-on like [7, 1, 0].
 - Labels must use the correct real-world terminology.
 - Produce EXACTLY 4 lessons, and EVERY one must have a fully populated "model"
   with 5-9 parts.

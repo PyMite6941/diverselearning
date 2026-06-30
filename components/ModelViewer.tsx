@@ -54,6 +54,17 @@ function finishProps(finish: ModelPart["finish"]) {
   }
 }
 
+/** Merge finish presets with any per-part PBR overrides from the AI. */
+function materialProps(part: ModelPart) {
+  const base = finishProps(part.finish);
+  return {
+    ...base,
+    roughness: part.roughness ?? base.roughness,
+    metalness: part.metalness ?? base.metalness,
+    extraEmissive: part.emissiveIntensity ?? (base as { extraEmissive?: number }).extraEmissive ?? 0,
+  };
+}
+
 function Part({
   part,
   active,
@@ -81,8 +92,8 @@ function Part({
     number,
     number
   ];
-  const fin = finishProps(part.finish);
-  const baseOpacity = part.opacity ?? fin.baseOpacity ?? 0.92;
+  const fin = materialProps(part);
+  const baseOpacity = part.opacity ?? (fin as { baseOpacity?: number }).baseOpacity ?? 0.92;
   const isShell = !!fin.shell || baseOpacity < 0.35;
 
   // Smoothly animate toward the exploded / collapsed target each frame.
@@ -146,7 +157,7 @@ function Part({
           emissive={part.color}
           emissiveIntensity={
             (active ? 0.5 : hover ? 0.28 : isShell ? 0.12 : 0.06) +
-            (fin.extraEmissive ?? 0)
+            fin.extraEmissive
           }
         />
         {/* Crisp edge outline gives each solid part a clear, diagram-like
@@ -254,10 +265,12 @@ export default function ModelViewer({
     return { center: c, fit: fitScale, dirs: ds };
   }, [model.parts]);
 
+  const camPos = model.cameraPosition ?? [4.5, 3, 6];
+
   return (
     <div className="relative h-full w-full">
       <Canvas
-        camera={{ position: [4.5, 3, 6], fov: 45 }}
+        camera={{ position: camPos, fov: 45 }}
         onPointerMissed={() => setSelected(null)}
         dpr={[1, 1.5]}
       >
