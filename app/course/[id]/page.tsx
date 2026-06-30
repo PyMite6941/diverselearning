@@ -123,7 +123,7 @@ export default function CoursePage() {
       {/* Main: lesson content + 3D */}
       <section className="flex flex-1 flex-col">
         {/* 3D stage */}
-        <div className="relative h-[45vh] w-full border-b border-white/5 lg:h-[55vh]">
+        <div className="relative h-[45vh] w-full overflow-hidden border-b border-white/5 lg:h-[55vh]">
           {lesson.model ? (
             <ModelViewer model={lesson.model} accent={course.accent} />
           ) : (

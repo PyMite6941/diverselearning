@@ -165,10 +165,14 @@ function Part({
           distanceFactor={9}
           position={[0, 0.5 * (scale[1] ?? 1) + 0.28, 0]}
           center
+          zIndexRange={[18, 2]}
+          style={{ pointerEvents: "none" }}
         >
           <div
-            className={`pointer-events-none whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium shadow-lg ring-1 ring-white/10 ${
-              active ? "bg-white text-black" : "bg-black/80 text-white"
+            className={`pointer-events-none whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold shadow-[0_2px_10px_rgba(0,0,0,0.6)] ring-1 ${
+              active
+                ? "bg-white text-black ring-black/10"
+                : "bg-black/85 text-white ring-white/20"
             }`}
           >
             {part.label}
@@ -273,12 +277,12 @@ export default function ModelViewer({
       </Canvas>
 
       {/* caption */}
-      <div className="pointer-events-none absolute left-4 top-4 max-w-[55%] rounded-xl bg-black/40 px-3 py-2 text-xs text-white/70 backdrop-blur">
+      <div className="pointer-events-none absolute left-4 top-4 z-10 max-w-[48%] rounded-xl bg-black/60 px-3 py-2 text-xs leading-snug text-white/85 shadow-lg ring-1 ring-white/10 backdrop-blur">
         {model.caption}
       </div>
 
       {/* break-apart controls */}
-      <div className="absolute right-4 top-4 flex flex-col items-end gap-2">
+      <div className="absolute right-4 top-4 z-10 flex flex-col items-end gap-2">
         <button
           onClick={() => {
             setExploded((e) => !e);
@@ -309,22 +313,22 @@ export default function ModelViewer({
       </div>
 
       {/* part breakdown panel */}
-      <div className="pointer-events-none absolute bottom-4 left-4 right-4 flex justify-center">
+      <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-20 flex justify-center">
         {active ? (
-          <div className="glass-strong pointer-events-auto max-w-lg rounded-2xl px-5 py-4 transition-all">
+          <div className="glass-strong pointer-events-auto max-w-lg rounded-2xl px-5 py-4 shadow-2xl ring-1 ring-white/10 transition-all">
             <div className="mb-1 flex items-center gap-2">
               <span
-                className="inline-block h-3 w-3 rounded-full"
+                className="inline-block h-3 w-3 flex-none rounded-full ring-1 ring-white/30"
                 style={{ background: active.color }}
               />
-              <h4 className="text-sm font-semibold">{active.label}</h4>
+              <h4 className="text-sm font-semibold text-white">{active.label}</h4>
             </div>
-            <p className="text-sm leading-relaxed text-white/75">
+            <p className="text-sm leading-relaxed text-white/80">
               {active.explanation}
             </p>
           </div>
         ) : (
-          <div className="pointer-events-none rounded-full bg-black/40 px-4 py-1.5 text-xs text-white/50 backdrop-blur">
+          <div className="pointer-events-none rounded-full bg-black/60 px-4 py-1.5 text-xs text-white/70 shadow-lg ring-1 ring-white/10 backdrop-blur">
             {exploded
               ? "Click any separated part to read what it does"
               : "Drag to rotate · click a part · or Break apart to see every piece"}

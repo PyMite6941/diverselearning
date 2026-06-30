@@ -39,11 +39,19 @@
 }
 
 /* Accessibility: dyslexia-friendly typography toggle.
-   Applied to <html> so it cascades to everything, including portals/modals. */
+   Swap the font everywhere, but only apply the extra letter/word/line spacing
+   to flowing reading text — applying it to every element inflates small fixed
+   UI chips (3D labels, badges, controls) and clips their text. */
 html.font-dyslexic body,
 html.font-dyslexic body * {
   font-family: "OpenDyslexic", var(--font-sans) !important;
-  letter-spacing: 0.02em;
+}
+html.font-dyslexic p,
+html.font-dyslexic li,
+html.font-dyslexic h1,
+html.font-dyslexic h2,
+html.font-dyslexic h3 {
+  letter-spacing: 0.015em;
   word-spacing: 0.08em;
   line-height: 1.7;
 }
