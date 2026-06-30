@@ -47,7 +47,9 @@ export const useStore = create<DLState>()(
       cards: [],
 
       addCourse: (course) => {
-        const card = cardFor(course, 0);
+        // Place the new tile by current count so cards don't stack on top of
+        // each other; the position is saved with the course.
+        const card = cardFor(course, get().cards.length);
         set((s) => ({ courses: [course, ...s.courses], cards: [card, ...s.cards] }));
         // write-through to cloud (no-op in local-only mode)
         void saveCloudCourse(course, card.layout).catch(() => {});

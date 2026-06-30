@@ -10,6 +10,7 @@ Your personal, interactive **3D classroom**. Tell it anything you're curious abo
 - **AI-generated courses** — describe an interest; a free-model chain (Groq → OpenRouter, with failover) writes a 4–6 lesson course tailored to you.
 - **Interactive 3D lessons** — at least half of each course's lessons include a model. Drag to rotate; click any part to break it down with a plain-language explanation.
 - **Per-user accounts + cloud courses** — sign in (Supabase) and your generated courses are saved to your account with row-level security, syncing across any device. Board positions persist too.
+- **Dyslexia-friendly reading** — one-tap toggle for the self-hosted **OpenDyslexic** typeface plus a roomier text mode; the choice is saved and applied across every page.
 - **Zero-key / zero-config fallback** — with no API keys the app serves a built-in sample course; with no Supabase it runs local-only (per-browser). Fully usable out of the box.
 - **Made for a few people** — disable public sign-ups in Supabase and invite a handful of users; optional invite-code gate on generation.
 

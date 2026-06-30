@@ -6,6 +6,44 @@
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
 }
 
+/* OpenDyslexic — self-hosted, applied when the reader enables it. */
+@font-face {
+  font-family: "OpenDyslexic";
+  src: url("/fonts/OpenDyslexic-Regular.woff2") format("woff2");
+  font-weight: 400 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "OpenDyslexic";
+  src: url("/fonts/OpenDyslexic-Bold.woff2") format("woff2");
+  font-weight: 700 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "OpenDyslexic";
+  src: url("/fonts/OpenDyslexic-Italic.woff2") format("woff2");
+  font-weight: 400 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Accessibility: dyslexia-friendly typography toggle.
+   Applied to <html> so it cascades to everything, including portals/modals. */
+html.font-dyslexic body,
+html.font-dyslexic body * {
+  font-family: "OpenDyslexic", var(--font-sans) !important;
+  letter-spacing: 0.02em;
+  word-spacing: 0.08em;
+  line-height: 1.7;
+}
+
+/* Optional larger reading size, paired with the font toggle. */
+html.reading-roomy body {
+  font-size: 1.06rem;
+}
+
 html,
 body {
   height: 100%;

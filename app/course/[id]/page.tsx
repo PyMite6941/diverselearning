@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import { fetchCloudCourse } from "@/lib/db";
+import AccessibilityMenu from "@/components/AccessibilityMenu";
 import type { Course } from "@/lib/types";
 
 // 3D viewer must be client-only (no SSR for WebGL).
@@ -73,12 +74,15 @@ export default function CoursePage() {
       {/* Sidebar: lesson list */}
       <aside className="glass-strong z-10 flex w-full flex-col border-r border-white/5 lg:h-screen lg:w-80">
         <div className="p-6">
-          <Link
-            href="/"
-            className="text-xs text-white/40 transition hover:text-white"
-          >
-            ← Dashboard
-          </Link>
+          <div className="flex items-center justify-between">
+            <Link
+              href="/"
+              className="text-xs text-white/40 transition hover:text-white"
+            >
+              ← Dashboard
+            </Link>
+            <AccessibilityMenu />
+          </div>
           <h1 className="mt-3 text-xl font-bold leading-tight">{course.title}</h1>
           <p className="mt-1 text-sm text-white/50">{course.subtitle}</p>
           <span

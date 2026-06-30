@@ -7,6 +7,7 @@ import { fetchCloudCourses } from "@/lib/db";
 import CourseTile from "@/components/CourseTile";
 import GenerateModal from "@/components/GenerateModal";
 import AuthModal from "@/components/AuthModal";
+import AccessibilityMenu from "@/components/AccessibilityMenu";
 
 export default function Dashboard() {
   const cards = useStore((s) => s.cards);
@@ -71,6 +72,7 @@ export default function Dashboard() {
         </div>
 
         <div className="pointer-events-auto flex items-center gap-3">
+          <AccessibilityMenu />
           <button
             onClick={() => setGen(true)}
             className="rounded-2xl bg-gradient-to-r from-accent to-glow px-5 py-2.5 text-sm font-semibold shadow-lg shadow-accent/20 transition hover:scale-[1.03] hover:shadow-accent/40"
