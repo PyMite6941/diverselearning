@@ -34,6 +34,21 @@ export interface ModelPart {
   opacity?: number;
   /** surface look; "glass" for casings/membranes, "metal" for hardware. */
   finish?: PartFinish;
+  /**
+   * PBR metalness override (0..1). Supersedes the finish preset when set.
+   * 0 = fully dielectric (plastic/organic), 1 = fully metallic.
+   */
+  metalness?: number;
+  /**
+   * PBR roughness override (0..1). Supersedes the finish preset when set.
+   * 0 = mirror-smooth, 1 = completely diffuse.
+   */
+  roughness?: number;
+  /**
+   * Extra emissive brightness for "glow" parts (0..1, stacks on finish base).
+   * Use for plasma, laser beams, bioluminescent tissue, LEDs, etc.
+   */
+  emissiveIntensity?: number;
   /** Plain-language explanation of what this part is / does. */
   explanation: string;
 }
@@ -43,6 +58,12 @@ export interface ModelSpec {
   /** Short caption describing the whole assembled model. */
   caption: string;
   parts: ModelPart[];
+  /**
+   * Suggested initial camera position [x, y, z] for the best viewing angle of
+   * this specific model. When omitted the viewer uses its default [4.5, 3, 6].
+   * Use when the model is flat/wide (top-down view) or very tall (front-on).
+   */
+  cameraPosition?: [number, number, number];
 }
 
 export interface Lesson {
