@@ -2,7 +2,14 @@
 
 import { Suspense, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Html, Float, ContactShadows, Environment } from "@react-three/drei";
+import {
+  OrbitControls,
+  Html,
+  Float,
+  ContactShadows,
+  Environment,
+  Edges,
+} from "@react-three/drei";
 import * as THREE from "three";
 import type { ModelPart, ModelSpec } from "@/lib/types";
 
@@ -143,6 +150,17 @@ function Part({
             (fin.extraEmissive ?? 0)
           }
         />
+        {/* Crisp edge outline gives each solid part a clear, diagram-like
+            silhouette. Skipped for smooth shells (no hard edges anyway). */}
+        {!isShell && (
+          <Edges threshold={18}>
+            <lineBasicMaterial
+              color="white"
+              transparent
+              opacity={dim ? 0.06 : active ? 0.45 : 0.22}
+            />
+          </Edges>
+        )}
       </mesh>
 
       {/* Membrane lattice: a faint wireframe over spherical shells so they read
@@ -207,22 +225,34 @@ export default function ModelViewer({
   const [spread, setSpread] = useState(2.4);
   const active = model.parts.find((p) => p.id === selected) ?? null;
 
-  // Explosion direction per part: outward from the model centroid, with a
-  // fan-out fallback for parts stacked at the center (membrane/nucleus/etc.).
-  const dirs = useMemo(() => {
-    const center = new THREE.Vector3();
+  // Normalize every model so it's centered at the origin and scaled to a
+  // consistent size — the AI picks arbitrary coordinates, so this is what makes
+  // each model well-framed and readable instead of off-center or tiny/huge.
+  const { center, fit, dirs } = useMemo(() => {
+    const c = new THREE.Vector3();
     model.parts.forEach((p) =>
-      center.add(new THREE.Vector3(p.position[0], p.position[1], p.position[2]))
+      c.add(new THREE.Vector3(p.position[0], p.position[1], p.position[2]))
     );
-    center.divideScalar(model.parts.length || 1);
+    c.divideScalar(model.parts.length || 1);
 
-    return model.parts.map((p, i) => {
+    let radius = 0.5;
+    model.parts.forEach((p) => {
       const pos = new THREE.Vector3(p.position[0], p.position[1], p.position[2]);
-      let d = pos.clone().sub(center);
+      const partR = 0.6 * Math.max(...(p.scale ?? [1, 1, 1]));
+      radius = Math.max(radius, pos.distanceTo(c) + partR);
+    });
+    const TARGET = 2.1;
+    const fitScale = Math.min(5, Math.max(0.25, TARGET / radius));
+
+    const ds = model.parts.map((p, i) => {
+      const pos = new THREE.Vector3(p.position[0], p.position[1], p.position[2]);
+      let d = pos.clone().sub(c);
       if (d.length() < 0.4) d = fibDir(i, model.parts.length);
       d.normalize();
       return [d.x, d.y, d.z] as [number, number, number];
     });
+
+    return { center: c, fit: fitScale, dirs: ds };
   }, [model.parts]);
 
   return (
@@ -242,7 +272,11 @@ export default function ModelViewer({
             rotationIntensity={exploded ? 0 : 0.22}
             floatIntensity={exploded ? 0 : 0.35}
           >
-            <group>
+            {/* recenter + uniform-fit so every model is framed the same way */}
+            <group
+              scale={fit}
+              position={[-fit * center.x, -fit * center.y, -fit * center.z]}
+            >
               {model.parts.map((p, i) => (
                 <Part
                   key={p.id}

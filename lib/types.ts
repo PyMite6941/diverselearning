@@ -52,6 +52,9 @@ export interface Lesson {
   body: string[];
   /** Optional 3D model that visualizes this lesson. */
   model?: ModelSpec;
+  /** Optional real glTF/GLB model (looked up from a free source) shown as a
+   *  "Realistic" view alongside the breakable diagram. */
+  asset?: { url: string; name?: string; credit?: string };
   /** Quick check question + answer for self-test. */
   check?: { question: string; answer: string };
 }

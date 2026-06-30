@@ -9,7 +9,7 @@ import { fetchCloudCourse } from "@/lib/db";
 import AccessibilityMenu from "@/components/AccessibilityMenu";
 import type { Course } from "@/lib/types";
 
-// 3D viewer must be client-only (no SSR for WebGL).
+// 3D viewers must be client-only (no SSR for WebGL).
 const ModelViewer = dynamic(() => import("@/components/ModelViewer"), {
   ssr: false,
   loading: () => (
@@ -18,6 +18,16 @@ const ModelViewer = dynamic(() => import("@/components/ModelViewer"), {
     </div>
   ),
 });
+const GLBViewer = dynamic(() => import("@/components/GLBViewer"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full items-center justify-center text-sm text-white/40">
+      Loading model…
+    </div>
+  ),
+});
+
+type Asset = { url: string; name?: string; credit?: string };
 
 export default function CoursePage() {
   const params = useParams();
@@ -29,6 +39,12 @@ export default function CoursePage() {
   const [showAnswer, setShowAnswer] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [loadingCloud, setLoadingCloud] = useState(false);
+
+  // Realistic-model state, keyed per lesson index.
+  const [assets, setAssets] = useState<Record<number, Asset>>({});
+  const [view, setView] = useState<"diagram" | "realistic">("diagram");
+  const [finding, setFinding] = useState(false);
+  const [findMsg, setFindMsg] = useState<string | null>(null);
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
@@ -50,7 +66,11 @@ export default function CoursePage() {
       .finally(() => setLoadingCloud(false));
   }, [mounted, id, getCourse, cacheCourse]);
 
-  useEffect(() => setShowAnswer(false), [active]);
+  useEffect(() => {
+    setShowAnswer(false);
+    setView("diagram");
+    setFindMsg(null);
+  }, [active]);
 
   if (!mounted) return null;
 
@@ -68,6 +88,27 @@ export default function CoursePage() {
   }
 
   const lesson = course.lessons[active];
+  const currentAsset: Asset | undefined = assets[active] ?? lesson.asset;
+
+  async function findRealistic() {
+    setFinding(true);
+    setFindMsg(null);
+    try {
+      const q = `${lesson.title} ${course!.topic}`;
+      const res = await fetch(`/api/find-model?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      if (data.model?.url) {
+        setAssets((a) => ({ ...a, [active]: data.model as Asset }));
+        setView("realistic");
+      } else {
+        setFindMsg("No free realistic model found — showing the diagram instead.");
+      }
+    } catch {
+      setFindMsg("Couldn't search for a model right now.");
+    } finally {
+      setFinding(false);
+    }
+  }
 
   return (
     <main className="flex min-h-screen flex-col lg:flex-row">
@@ -124,7 +165,43 @@ export default function CoursePage() {
       <section className="flex flex-1 flex-col">
         {/* 3D stage */}
         <div className="relative h-[45vh] w-full overflow-hidden border-b border-white/5 lg:h-[55vh]">
-          {lesson.model ? (
+          {/* Diagram / Realistic toggle */}
+          <div className="absolute left-1/2 top-3 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/55 p-1 text-xs shadow-lg ring-1 ring-white/10 backdrop-blur">
+            <button
+              onClick={() => setView("diagram")}
+              className={`rounded-full px-3 py-1 font-medium transition ${
+                view === "diagram"
+                  ? "bg-white text-black"
+                  : "text-white/70 hover:text-white"
+              }`}
+            >
+              Diagram
+            </button>
+            {currentAsset ? (
+              <button
+                onClick={() => setView("realistic")}
+                className={`rounded-full px-3 py-1 font-medium transition ${
+                  view === "realistic"
+                    ? "bg-white text-black"
+                    : "text-white/70 hover:text-white"
+                }`}
+              >
+                Realistic
+              </button>
+            ) : (
+              <button
+                onClick={findRealistic}
+                disabled={finding}
+                className="rounded-full px-3 py-1 font-medium text-white/70 transition hover:text-white disabled:opacity-50"
+              >
+                {finding ? "Searching…" : "Find realistic ✦"}
+              </button>
+            )}
+          </div>
+
+          {view === "realistic" && currentAsset ? (
+            <GLBViewer url={currentAsset.url} accent={course.accent} />
+          ) : lesson.model ? (
             <ModelViewer model={lesson.model} accent={course.accent} />
           ) : (
             <div className="grid-bg flex h-full items-center justify-center">
@@ -134,6 +211,17 @@ export default function CoursePage() {
                   A reading lesson — no model for this one.
                 </p>
               </div>
+            </div>
+          )}
+
+          {view === "realistic" && currentAsset?.credit && (
+            <div className="pointer-events-none absolute bottom-2 right-3 z-20 max-w-[60%] truncate text-[10px] text-white/40">
+              {currentAsset.credit}
+            </div>
+          )}
+          {findMsg && (
+            <div className="absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-full bg-black/65 px-3 py-1 text-[11px] text-white/70 ring-1 ring-white/10">
+              {findMsg}
             </div>
           )}
         </div>
