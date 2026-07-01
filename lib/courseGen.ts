@@ -1,84 +1,50 @@
 import { chat, hasAnyProvider } from "./provider";
 import type { Course } from "./types";
 
-const SYSTEM = `You are a curriculum designer AND a technical 3D modeler for an
-interactive learning site. You generate ONE course tailored precisely to the
-learner's stated interest. The course MUST be about exactly that topic — never
-substitute a different subject.
+const SYSTEM = `You are a curriculum designer and technical 3D modeler. Generate ONE
+course about EXACTLY the learner's topic — never substitute another subject.
+EVERY lesson must include a 3D "model": an accurate, exploded-diagram-style
+breakdown of the real thing built from labeled primitive parts.
 
-EVERY lesson MUST contain a 3D "model" — no lesson may omit it. The model is
-the centerpiece: it must be the MOST ACCURATE representation of the real thing
-that is achievable from labeled primitive parts. Treat it like building an
-exploded engineering/anatomical diagram.
-
-Return STRICT JSON only (no markdown, no commentary) matching this shape:
+Return STRICT JSON only (no markdown/prose), matching:
 
 {
-  "title": string,
-  "subtitle": string,
-  "level": "beginner" | "intermediate" | "advanced",
-  "accent": string (hex color fitting the topic),
-  "lessons": [
-    {
-      "title": string,
-      "body": [string, string, ...],   // 2-4 short teaching paragraphs
-      "model": {                          // REQUIRED for every lesson
-        "caption": string,
-        "cameraPosition": [x, y, z],    // optional; best viewpoint for THIS model
-                                         // e.g. [0, 6, 2] for a flat solar-system
-                                         // layout, [6, 2, 0] for a tall structure.
-                                         // Omit to use the default [4.5, 3, 6].
-        "parts": [
-          {
-            "label": string,            // correct technical/anatomical name
-            "shape": "box" | "sphere" | "cylinder" | "cone" | "torus"
-                     | "capsule" | "tetrahedron" | "octahedron" | "ring"
-                     | "plane" | "torusKnot",
-            "position": [x, y, z],       // within -3..3
-            "scale": [x, y, z],          // reflect TRUE relative proportions
-            "rotation": [x, y, z],       // DEGREES; orient parts realistically
-            "color": string (hex),       // realistic, distinct per part
-            "opacity": number,           // 0..1; < 1 for outer shells/membranes
-            "finish": "matte" | "metal" | "glass" | "glow",
-            "metalness": number,         // 0..1 PBR override; omit to use finish
-                                         // default. 1 = pure metal, 0 = plastic.
-            "roughness": number,         // 0..1 PBR override; omit to use finish
-                                         // default. 0 = mirror, 1 = chalk-flat.
-            "emissiveIntensity": number, // extra glow brightness 0..1; use for
-                                         // light sources, plasma, bioluminescence.
-            "explanation": string
-          }
-        ]
-      },
-      "check": { "question": string, "answer": string }
-    }
-  ]
+  "title": string, "subtitle": string,
+  "level": "beginner"|"intermediate"|"advanced",
+  "accent": "#hex",
+  "lessons": [{
+    "title": string,
+    "body": [string, ...],            // 2-3 short teaching paragraphs
+    "model": {                         // REQUIRED every lesson
+      "caption": string,
+      "cameraPosition": [x,y,z],       // optional best viewpoint; omit for default
+      "parts": [{
+        "label": string,              // correct technical name
+        "shape": "box"|"sphere"|"cylinder"|"cone"|"torus"|"capsule"|"tetrahedron"|"octahedron"|"ring"|"plane"|"torusKnot",
+        "position": [x,y,z],          // within -3..3
+        "scale": [x,y,z],             // TRUE relative proportions
+        "rotation": [x,y,z],          // degrees
+        "color": "#hex",
+        "opacity": number,            // 0..1; <1 for shells/membranes
+        "finish": "matte"|"metal"|"glass"|"glow",
+        "metalness": number,          // optional 0..1 PBR override
+        "roughness": number,          // optional 0..1 PBR override
+        "emissiveIntensity": number,  // optional; >0.3 for light-emitting parts
+        "explanation": string
+      }]
+    },
+    "check": { "question": string, "answer": string }
+  }]
 }
 
-Accuracy rules (critical):
-- Use 5 to 9 parts per model — enough to capture the real structure, not a
-  cartoon. Include the parts that actually exist in the real object.
-- Get PROPORTIONS right: scale parts relative to each other as they truly are.
-- Get the SPATIAL LAYOUT right: position and rotate parts so their arrangement
-  matches reality (e.g. planets in order from the sun; engine stages in line;
-  organelles inside the membrane).
-- Pick the closest shape for each part and use "rotation" to align it.
-- Use a translucent "glass" outer shell (low opacity) when the real object has a
-  casing/membrane/body, so inner parts remain visible.
-- Use "metal" finish for hardware/mechanical parts, "glow" for light/energy.
-- Use metalness/roughness overrides when you need finer control than the finish
-  preset: e.g. roughness 0.05 for a mirror-polished ball bearing, metalness 0
-  and roughness 0.8 for a bone or rock surface.
-- Use emissiveIntensity > 0.3 for parts that genuinely emit light (star cores,
-  plasma, neon tubes, LED chips, bioluminescent cells).
-- Set cameraPosition when the default [4.5, 3, 6] would frame the model poorly:
-  flat layouts (solar system, circuit board) benefit from a top-down camera like
-  [0, 7, 1]; tall/narrow structures (DNA strand, skyscraper) look better
-  face-on like [7, 1, 0].
-- Labels must use the correct real-world terminology.
-- Produce EXACTLY 4 lessons, and EVERY one must have a fully populated "model"
-  with 5-9 parts.
-- Teaching text: 2-3 short, concrete paragraphs per lesson. No fluff.`;
+Rules:
+- EXACTLY 4 lessons; each model has 5-9 parts that actually exist in the object.
+- Correct proportions, positions and rotations so the layout matches reality
+  (planets ordered from the sun; engine stages in line; organelles inside the
+  membrane). Use a translucent "glass" shell for casings/membranes so inner
+  parts show. "metal" for hardware, "glow"/emissiveIntensity for light/energy.
+- Set cameraPosition for flat (top-down, e.g. [0,7,1]) or tall (face-on) models.
+- Concrete, friendly teaching text. No fluff.`;
 
 function slug(): string {
   return Math.random().toString(36).slice(2, 10);
@@ -178,7 +144,10 @@ Create exactly 4 lessons, and EVERY lesson must include a fully populated 3D
       const content = await chat(messages, {
         json: true,
         temperature: attempt === 0 ? 0.6 : 0.4,
-        maxTokens: 7000,
+        // Groq free tier reserves (input + max_tokens) against an 8000 TPM
+        // limit, so this must stay well under it or every request 413s.
+        // ~2.5k tokens is plenty for a complete 4-lesson course.
+        maxTokens: 5000,
       });
       const raw = extractJson(content);
       if (!raw) continue;

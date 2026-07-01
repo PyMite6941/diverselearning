@@ -17,7 +17,6 @@ export default function GenerateModal({ onClose }: { onClose: () => void }) {
   const addCourse = useStore((s) => s.addCourse);
   const [topic, setTopic] = useState("");
   const [level, setLevel] = useState("beginner");
-  const [invite, setInvite] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +31,7 @@ export default function GenerateModal({ onClose }: { onClose: () => void }) {
       const res = await fetch("/api/generate-course", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, level, invite }),
+        body: JSON.stringify({ topic, level }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Generation failed.");
@@ -103,13 +102,6 @@ export default function GenerateModal({ onClose }: { onClose: () => void }) {
             ))}
           </div>
         </div>
-
-        <input
-          value={invite}
-          onChange={(e) => setInvite(e.target.value)}
-          placeholder="Invite code (if required)"
-          className="mt-4 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs outline-none focus:border-accent/50"
-        />
 
         {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
 
