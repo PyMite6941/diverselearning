@@ -7,7 +7,9 @@ import {
   saveCloudCourse,
   deleteCloudCourse,
   saveCloudLayout,
+  updateCloudCourseData,
 } from "./db";
+import type { Lesson } from "./types";
 
 interface DLState {
   courses: Course[];
@@ -16,6 +18,11 @@ interface DLState {
   removeCourse: (id: string) => void;
   getCourse: (id: string) => Course | undefined;
   cacheCourse: (course: Course) => void;
+  setLessonAsset: (
+    courseId: string,
+    lessonIndex: number,
+    asset: Lesson["asset"]
+  ) => void;
   updateLayout: (id: string, layout: CourseCard["layout"]) => void;
   commitLayout: (id: string) => void;
   /** Replace the whole board from cloud (on sign-in / initial load). */
@@ -73,6 +80,23 @@ export const useStore = create<DLState>()(
             ? s
             : { courses: [...s.courses, course] }
         ),
+
+      // Attach a found realistic model to a lesson and persist it to the cloud
+      // so it reappears next time the course is opened.
+      setLessonAsset: (courseId, lessonIndex, asset) =>
+        set((s) => {
+          let changed: Course | null = null;
+          const courses = s.courses.map((c) => {
+            if (c.id !== courseId) return c;
+            const lessons = c.lessons.map((l, i) =>
+              i === lessonIndex ? { ...l, asset } : l
+            );
+            changed = { ...c, lessons };
+            return changed;
+          });
+          if (changed) void updateCloudCourseData(changed).catch(() => {});
+          return { courses };
+        }),
 
       // Local-only positional update (fires on every drag move — cheap).
       updateLayout: (id, layout) =>

@@ -35,6 +35,7 @@ export default function CoursePage() {
   const id = params.id as string;
   const getCourse = useStore((s) => s.getCourse);
   const cacheCourse = useStore((s) => s.cacheCourse);
+  const setLessonAsset = useStore((s) => s.setLessonAsset);
   const [course, setCourse] = useState<Course | undefined>();
   const [active, setActive] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
@@ -99,7 +100,10 @@ export default function CoursePage() {
       const res = await fetch(`/api/find-model?q=${encodeURIComponent(q)}`);
       const data = await res.json();
       if (data.model?.url) {
-        setAssets((a) => ({ ...a, [active]: data.model as Asset }));
+        const found = data.model as Asset;
+        setAssets((a) => ({ ...a, [active]: found }));
+        // Persist the realistic model into the course so it's saved + reappears.
+        setLessonAsset(course!.id, active, found);
         setView("realistic");
       } else {
         setFindMsg("No free realistic model found — showing the diagram instead.");

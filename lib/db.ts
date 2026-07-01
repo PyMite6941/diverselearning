@@ -85,3 +85,14 @@ export async function saveCloudLayout(
   const { error } = await supabase.from("courses").update({ layout }).eq("id", id);
   if (error) throw error;
 }
+
+/** Update only the course JSON (e.g. after attaching a realistic model to a
+ *  lesson) without touching the saved tile layout. */
+export async function updateCloudCourseData(course: Course): Promise<void> {
+  if (!supabase || !isCloudActive()) return;
+  const { error } = await supabase
+    .from("courses")
+    .update({ data: course })
+    .eq("id", course.id);
+  if (error) throw error;
+}
