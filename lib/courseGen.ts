@@ -1,10 +1,17 @@
 import { chat, hasAnyProvider } from "./provider";
 import type { Course } from "./types";
 
-const SYSTEM = `You are a curriculum designer and technical 3D modeler. Generate ONE
-course about EXACTLY the learner's topic — never substitute another subject.
-EVERY lesson must include a 3D "model": an accurate, exploded-diagram-style
-breakdown of the real thing built from labeled primitive parts.
+const SYSTEM = `You are a curriculum designer. Generate ONE course about EXACTLY
+the learner's topic — never substitute another subject.
+
+FIRST decide the topic type:
+- PHYSICAL / STRUCTURAL (has real parts you can see — anatomy, machines,
+  astronomy, molecules, geography): each lesson gets a 3D "model".
+- CONCEPTUAL / ABSTRACT (languages, programming, math, music theory, history,
+  economics, writing): DO NOT invent 3D models. Each lesson gets "concept"
+  content instead.
+A lesson has EITHER "model" OR "concept" — never force a model onto an abstract
+idea. Mixed topics may use whichever fits each lesson.
 
 Return STRICT JSON only (no markdown/prose), matching:
 
@@ -15,35 +22,38 @@ Return STRICT JSON only (no markdown/prose), matching:
   "lessons": [{
     "title": string,
     "body": [string, ...],            // 2-3 short teaching paragraphs
-    "model": {                         // REQUIRED every lesson
+    "model": {                         // PHYSICAL topics only
       "caption": string,
-      "cameraPosition": [x,y,z],       // optional best viewpoint; omit for default
+      "cameraPosition": [x,y,z],       // optional; omit for default
       "parts": [{
-        "label": string,              // correct technical name
+        "label": string,
         "shape": "box"|"sphere"|"cylinder"|"cone"|"torus"|"capsule"|"tetrahedron"|"octahedron"|"ring"|"plane"|"torusKnot",
         "position": [x,y,z],          // within -3..3
-        "scale": [x,y,z],             // TRUE relative proportions
-        "rotation": [x,y,z],          // degrees
-        "color": "#hex",
-        "opacity": number,            // 0..1; <1 for shells/membranes
-        "finish": "matte"|"metal"|"glass"|"glow",
-        "metalness": number,          // optional 0..1 PBR override
-        "roughness": number,          // optional 0..1 PBR override
-        "emissiveIntensity": number,  // optional; >0.3 for light-emitting parts
+        "scale": [x,y,z], "rotation": [x,y,z], "color": "#hex",
+        "opacity": number, "finish": "matte"|"metal"|"glass"|"glow",
+        "metalness": number, "roughness": number, "emissiveIntensity": number,
         "explanation": string
       }]
+    },
+    "concept": {                       // CONCEPTUAL topics only
+      "keyPoints": [string, ...],      // 3-5 crisp takeaways
+      "code": [{ "language": string, "caption": string, "snippet": string }],  // for programming
+      "vocab": [{ "term": string, "meaning": string }],                        // for languages/glossary
+      "example": string                // a worked example or analogy
     },
     "check": { "question": string, "answer": string }
   }]
 }
 
 Rules:
-- EXACTLY 4 lessons; each model has 5-9 parts that actually exist in the object.
-- Correct proportions, positions and rotations so the layout matches reality
-  (planets ordered from the sun; engine stages in line; organelles inside the
-  membrane). Use a translucent "glass" shell for casings/membranes so inner
-  parts show. "metal" for hardware, "glow"/emissiveIntensity for light/energy.
-- Set cameraPosition for flat (top-down, e.g. [0,7,1]) or tall (face-on) models.
+- EXACTLY 4 lessons.
+- PHYSICAL: each model has 5-9 real parts, correct proportions/positions/
+  rotations (planets ordered from the sun; organelles inside a translucent
+  "glass" membrane; "metal" hardware; "glow" for light). cameraPosition for
+  flat (top-down [0,7,1]) or tall (face-on) models.
+- CONCEPTUAL: fill "concept" — always keyPoints; add "code" for programming
+  (real, runnable snippets), "vocab" for languages/terminology, and an
+  "example". Omit fields that don't apply. No 3D model.
 - Concrete, friendly teaching text. No fluff.`;
 
 function slug(): string {
@@ -60,6 +70,7 @@ function hydrate(raw: any, topic: string): Course {
     model: l.model
       ? {
           caption: l.model.caption ?? "",
+          cameraPosition: l.model.cameraPosition,
           parts: (l.model.parts || []).map((p: any, j: number) => ({
             id: `${id}-l${i}-p${j}`,
             label: p.label ?? `Part ${j + 1}`,
@@ -70,8 +81,24 @@ function hydrate(raw: any, topic: string): Course {
             color: p.color ?? "#7c5cff",
             opacity: typeof p.opacity === "number" ? p.opacity : undefined,
             finish: p.finish,
+            metalness: typeof p.metalness === "number" ? p.metalness : undefined,
+            roughness: typeof p.roughness === "number" ? p.roughness : undefined,
+            emissiveIntensity:
+              typeof p.emissiveIntensity === "number"
+                ? p.emissiveIntensity
+                : undefined,
             explanation: p.explanation ?? "",
           })),
+        }
+      : undefined,
+    concept: l.concept
+      ? {
+          keyPoints: Array.isArray(l.concept.keyPoints)
+            ? l.concept.keyPoints
+            : undefined,
+          code: Array.isArray(l.concept.code) ? l.concept.code : undefined,
+          vocab: Array.isArray(l.concept.vocab) ? l.concept.vocab : undefined,
+          example: l.concept.example,
         }
       : undefined,
     check: l.check,
@@ -118,7 +145,8 @@ function extractJson(text: string): any | null {
  */
 export async function generateCourse(
   topic: string,
-  level = "beginner"
+  level = "beginner",
+  learningStyle = ""
 ): Promise<Course> {
   if (!hasAnyProvider()) {
     throw new CourseGenError(
@@ -127,14 +155,25 @@ export async function generateCourse(
     );
   }
 
+  const style = learningStyle.trim();
+  const styleLine = style
+    ? `\nHOW THIS LEARNER LEARNS BEST: "${style}". Tailor EVERYTHING to this — the
+teaching text, the checks, and ESPECIALLY the concept lessons. Adapt your
+approach accordingly (e.g. lots of worked examples, real code to try,
+analogies and stories, strict step-by-step, extra practice, concise vs deep,
+or a specific tone). Make it feel made for this person.`
+    : "";
+
   const messages = [
     { role: "system" as const, content: SYSTEM },
     {
       role: "user" as const,
       content: `Learner interest: "${topic}". Target level: ${level}.
-The course MUST be about "${topic}" specifically.
-Create exactly 4 lessons, and EVERY lesson must include a fully populated 3D
-"model" with 5-9 accurately-arranged parts. Generate the course JSON now.`,
+The course MUST be about "${topic}" specifically. Create exactly 4 lessons.
+Use a 3D "model" for physical/structural lessons and "concept" content for
+abstract ones (languages, programming, theory) — never force a model onto an
+abstract idea.${styleLine}
+Generate the course JSON now.`,
     },
   ];
 

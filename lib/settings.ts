@@ -11,11 +11,15 @@ interface SettingsState {
   roomyText: boolean;
   /** Site-wide color theme. */
   theme: Theme;
+  /** How the learner wants to learn — free text, fed into course generation so
+   *  every course (especially concept lessons) adapts to them. */
+  learningStyle: string;
   setDyslexiaFont: (v: boolean) => void;
   setRoomyText: (v: boolean) => void;
   setTheme: (t: Theme) => void;
   patchTheme: (p: Partial<Theme>) => void;
   resetTheme: () => void;
+  setLearningStyle: (v: string) => void;
 }
 
 /** Appearance + accessibility preferences, persisted to localStorage so they
@@ -26,11 +30,13 @@ export const useSettings = create<SettingsState>()(
       dyslexiaFont: false,
       roomyText: false,
       theme: DEFAULT_THEME,
+      learningStyle: "",
       setDyslexiaFont: (v) => set({ dyslexiaFont: v }),
       setRoomyText: (v) => set({ roomyText: v }),
       setTheme: (theme) => set({ theme }),
       patchTheme: (p) => set((s) => ({ theme: { ...s.theme, ...p } })),
       resetTheme: () => set({ theme: DEFAULT_THEME }),
+      setLearningStyle: (v) => set({ learningStyle: v }),
     }),
     { name: "diverselearning-settings-v1" }
   )

@@ -8,6 +8,7 @@ import { useStore } from "@/lib/store";
 import { fetchCloudCourse } from "@/lib/db";
 import AccessibilityMenu from "@/components/AccessibilityMenu";
 import LessonReader from "@/components/LessonReader";
+import ConceptView from "@/components/ConceptView";
 import type { Course } from "@/lib/types";
 
 // 3D viewers must be client-only (no SSR for WebGL).
@@ -168,68 +169,62 @@ export default function CoursePage() {
 
       {/* Main: lesson content + 3D */}
       <section className="flex flex-1 flex-col">
-        {/* 3D stage */}
-        <div className="relative h-[45vh] w-full overflow-hidden border-b border-white/5 lg:h-[55vh]">
-          {/* Diagram / Realistic toggle */}
-          <div className="absolute left-1/2 top-3 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/55 p-1 text-xs shadow-lg ring-1 ring-white/10 backdrop-blur">
-            <button
-              onClick={() => setView("diagram")}
-              className={`rounded-full px-3 py-1 font-medium transition ${
-                view === "diagram"
-                  ? "bg-white text-black"
-                  : "text-white/70 hover:text-white"
-              }`}
-            >
-              Diagram
-            </button>
-            {currentAsset ? (
+        {/* 3D stage — only for lessons that have a model. Conceptual lessons
+            (languages, code, theory) skip it and use the content area below. */}
+        {lesson.model && (
+          <div className="relative h-[45vh] w-full overflow-hidden border-b border-white/5 lg:h-[55vh]">
+            {/* Diagram / Realistic toggle */}
+            <div className="absolute left-1/2 top-3 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/55 p-1 text-xs shadow-lg ring-1 ring-white/10 backdrop-blur">
               <button
-                onClick={() => setView("realistic")}
+                onClick={() => setView("diagram")}
                 className={`rounded-full px-3 py-1 font-medium transition ${
-                  view === "realistic"
+                  view === "diagram"
                     ? "bg-white text-black"
                     : "text-white/70 hover:text-white"
                 }`}
               >
-                Realistic
+                Diagram
               </button>
+              {currentAsset ? (
+                <button
+                  onClick={() => setView("realistic")}
+                  className={`rounded-full px-3 py-1 font-medium transition ${
+                    view === "realistic"
+                      ? "bg-white text-black"
+                      : "text-white/70 hover:text-white"
+                  }`}
+                >
+                  Realistic
+                </button>
+              ) : (
+                <button
+                  onClick={findRealistic}
+                  disabled={finding}
+                  className="rounded-full px-3 py-1 font-medium text-white/70 transition hover:text-white disabled:opacity-50"
+                >
+                  {finding ? "Searching…" : "Find realistic ✦"}
+                </button>
+              )}
+            </div>
+
+            {view === "realistic" && currentAsset ? (
+              <GLBViewer url={currentAsset.url} accent={course.accent} />
             ) : (
-              <button
-                onClick={findRealistic}
-                disabled={finding}
-                className="rounded-full px-3 py-1 font-medium text-white/70 transition hover:text-white disabled:opacity-50"
-              >
-                {finding ? "Searching…" : "Find realistic ✦"}
-              </button>
+              <ModelViewer model={lesson.model} accent={course.accent} />
+            )}
+
+            {view === "realistic" && currentAsset?.credit && (
+              <div className="pointer-events-none absolute bottom-2 right-3 z-20 max-w-[60%] truncate text-[10px] text-white/40">
+                {currentAsset.credit}
+              </div>
+            )}
+            {findMsg && (
+              <div className="absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-full bg-black/65 px-3 py-1 text-[11px] text-white/70 ring-1 ring-white/10">
+                {findMsg}
+              </div>
             )}
           </div>
-
-          {view === "realistic" && currentAsset ? (
-            <GLBViewer url={currentAsset.url} accent={course.accent} />
-          ) : lesson.model ? (
-            <ModelViewer model={lesson.model} accent={course.accent} />
-          ) : (
-            <div className="grid-bg flex h-full items-center justify-center">
-              <div className="text-center">
-                <div className="animate-float text-5xl">📖</div>
-                <p className="mt-3 text-sm text-white/40">
-                  A reading lesson — no model for this one.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {view === "realistic" && currentAsset?.credit && (
-            <div className="pointer-events-none absolute bottom-2 right-3 z-20 max-w-[60%] truncate text-[10px] text-white/40">
-              {currentAsset.credit}
-            </div>
-          )}
-          {findMsg && (
-            <div className="absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-full bg-black/65 px-3 py-1 text-[11px] text-white/70 ring-1 ring-white/10">
-              {findMsg}
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Teaching text */}
         <div className="flex-1 overflow-y-auto p-8">
@@ -242,6 +237,10 @@ export default function CoursePage() {
             <div className="mt-5">
               <LessonReader key={lesson.id} body={lesson.body} accent={course.accent} />
             </div>
+
+            {lesson.concept && (
+              <ConceptView concept={lesson.concept} accent={course.accent} />
+            )}
 
             {lesson.check && (
               <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5">

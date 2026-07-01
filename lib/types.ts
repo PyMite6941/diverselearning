@@ -66,13 +66,29 @@ export interface ModelSpec {
   cameraPosition?: [number, number, number];
 }
 
+/** Non-model content for conceptual topics (languages, programming, theory,
+ *  history…) where a 3D model doesn't make sense. A lesson has EITHER a `model`
+ *  or `concept` content. */
+export interface ConceptContent {
+  /** Short bulleted takeaways. */
+  keyPoints?: string[];
+  /** Code examples (for programming / technical topics). */
+  code?: { language: string; caption?: string; snippet: string }[];
+  /** Term/meaning pairs — vocabulary (languages) or a glossary. */
+  vocab?: { term: string; meaning: string }[];
+  /** A worked example or a concrete analogy. */
+  example?: string;
+}
+
 export interface Lesson {
   id: string;
   title: string;
   /** 2-4 short paragraphs of teaching text. */
   body: string[];
-  /** Optional 3D model that visualizes this lesson. */
+  /** Optional 3D model that visualizes this lesson (physical/structural topics). */
   model?: ModelSpec;
+  /** Optional concept content (abstract topics — languages, code, theory). */
+  concept?: ConceptContent;
   /** Optional real glTF/GLB model (looked up from a free source) shown as a
    *  "Realistic" view alongside the breakable diagram. */
   asset?: { url: string; name?: string; credit?: string };

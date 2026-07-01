@@ -2,21 +2,34 @@
 
 import { useState } from "react";
 import { useStore } from "@/lib/store";
+import { useSettings } from "@/lib/settings";
 import type { Course } from "@/lib/types";
 
 const SUGGESTIONS = [
   "How a jet engine works",
-  "The basics of music theory",
-  "Neural networks, visually",
+  "Spanish for travel",
+  "Python for beginners",
   "The solar system",
-  "How a guitar makes sound",
+  "The basics of music theory",
   "Photosynthesis",
+];
+
+const STYLE_PRESETS = [
+  "Lots of examples & practice",
+  "Explain with analogies & stories",
+  "Strict step-by-step",
+  "Keep it concise",
+  "Go deep & thorough",
+  "Hands-on: things I can try",
 ];
 
 export default function GenerateModal({ onClose }: { onClose: () => void }) {
   const addCourse = useStore((s) => s.addCourse);
+  const savedStyle = useSettings((s) => s.learningStyle);
+  const setLearningStyle = useSettings((s) => s.setLearningStyle);
   const [topic, setTopic] = useState("");
   const [level, setLevel] = useState("beginner");
+  const [style, setStyle] = useState(savedStyle);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,11 +40,13 @@ export default function GenerateModal({ onClose }: { onClose: () => void }) {
     }
     setLoading(true);
     setError(null);
+    // Remember the learning style as the default for next time.
+    setLearningStyle(style.trim());
     try {
       const res = await fetch("/api/generate-course", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, level }),
+        body: JSON.stringify({ topic, level, learningStyle: style.trim() }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Generation failed.");
@@ -42,6 +57,20 @@ export default function GenerateModal({ onClose }: { onClose: () => void }) {
     } finally {
       setLoading(false);
     }
+  }
+
+  function toggleStyle(preset: string) {
+    setStyle((cur) => {
+      const parts = cur
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean);
+      const has = parts.some((p) => p.toLowerCase() === preset.toLowerCase());
+      const next = has
+        ? parts.filter((p) => p.toLowerCase() !== preset.toLowerCase())
+        : [...parts, preset];
+      return next.join(", ");
+    });
   }
 
   return (
@@ -100,6 +129,39 @@ export default function GenerateModal({ onClose }: { onClose: () => void }) {
                 {l}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* How you learn best — tailors the whole course, especially concepts */}
+        <div className="mt-5">
+          <label className="text-xs text-white/50">
+            How do you learn best?{" "}
+            <span className="text-white/30">(remembered for next time)</span>
+          </label>
+          <textarea
+            value={style}
+            onChange={(e) => setStyle(e.target.value)}
+            placeholder="e.g. lots of real examples, explain like I'm 12, give me code to try, use analogies…"
+            rows={2}
+            className="mt-2 w-full resize-none rounded-xl border border-white/10 bg-black/30 p-3 text-sm outline-none transition focus:border-accent/60"
+          />
+          <div className="mt-2 flex flex-wrap gap-2">
+            {STYLE_PRESETS.map((p) => {
+              const on = style.toLowerCase().includes(p.toLowerCase());
+              return (
+                <button
+                  key={p}
+                  onClick={() => toggleStyle(p)}
+                  className={`rounded-full border px-3 py-1 text-xs transition ${
+                    on
+                      ? "border-accent/60 bg-accent/15 text-white"
+                      : "border-white/10 bg-white/5 text-white/60 hover:text-white"
+                  }`}
+                >
+                  {p}
+                </button>
+              );
+            })}
           </div>
         </div>
 

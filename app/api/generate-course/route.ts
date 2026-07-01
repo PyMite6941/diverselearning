@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   try {
     // Access is gated by Clerk middleware (this route is protected), so a
     // request here is already an authenticated user.
-    const { topic, level } = await req.json();
+    const { topic, level, learningStyle } = await req.json();
 
     if (!topic || typeof topic !== "string" || topic.trim().length < 2) {
       return NextResponse.json(
@@ -17,7 +17,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const course = await generateCourse(topic.trim(), level || "beginner");
+    const course = await generateCourse(
+      topic.trim(),
+      level || "beginner",
+      typeof learningStyle === "string" ? learningStyle.slice(0, 400) : ""
+    );
     return NextResponse.json({ course });
   } catch (e) {
     if (e instanceof CourseGenError) {

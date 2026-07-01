@@ -24,7 +24,7 @@ const FEATURES = [
   {
     icon: "🧊",
     title: "Interactive 3D models",
-    body: "Every concept becomes a model you can rotate, zoom, and explore right in the page.",
+    body: "Physical things become models you can rotate, zoom, and explore right in the page.",
   },
   {
     icon: "⤢",
@@ -147,6 +147,33 @@ export default function Home() {
                 <div className="animate-float text-5xl">🧬</div>
                 <span className="text-sm text-white/40">Loading 3D preview…</span>
               </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Concepts — not just physical things */}
+      <section className="mx-auto w-full max-w-6xl px-6 pt-8 sm:px-10">
+        <div className="glass flex flex-col items-start gap-5 rounded-3xl p-6 sm:flex-row sm:items-center sm:p-8">
+          <div className="text-4xl">🧩</div>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold">Not just physical things</h3>
+            <p className="mt-1 text-sm leading-relaxed text-white/60">
+              Learn languages, programming, music theory, history and other
+              abstract ideas too — those lessons come with key points, code
+              samples and vocabulary instead of a 3D model.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {["Spanish", "Python", "Music theory", "Statistics", "World history"].map(
+              (t) => (
+                <span
+                  key={t}
+                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60"
+                >
+                  {t}
+                </span>
+              )
             )}
           </div>
         </div>
