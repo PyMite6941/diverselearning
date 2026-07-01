@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useAuth } from "@/lib/useAuth";
+import { SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
 import { sampleCourse } from "@/lib/courseGen";
 
 const ModelViewer = dynamic(() => import("@/components/ModelViewer"), {
@@ -49,7 +49,7 @@ const FEATURES = [
 ];
 
 export default function Home() {
-  const auth = useAuth();
+  const { isSignedIn } = useUser();
   const [mounted, setMounted] = useState(false);
   // Mount the heavy 3D hero only once the page is interactive, so the landing
   // paints and becomes usable immediately instead of waiting on three.js.
@@ -73,7 +73,7 @@ export default function Home() {
   // A real, interactive model as the hero — the product, live, on first sight.
   const heroModel = useMemo(() => sampleCourse().lessons[0].model, []);
 
-  const signedIn = mounted && !!auth.user;
+  const signedIn = mounted && !!isSignedIn;
 
   return (
     <main className="grid-bg flex min-h-screen flex-col">
@@ -83,20 +83,29 @@ export default function Home() {
           Diverse<span className="grad-text">Learning</span>
         </span>
         <nav className="flex items-center gap-3 text-sm">
-          {auth.cloudEnabled && !signedIn && (
+          <SignedOut>
             <Link
-              href="/dashboard"
+              href="/sign-in"
               className="rounded-xl border border-white/15 px-4 py-2 font-medium text-white/80 transition hover:bg-white/10"
             >
               Sign in
             </Link>
-          )}
-          <Link
-            href="/dashboard"
-            className="rounded-xl bg-gradient-to-r from-accent to-glow px-4 py-2 font-semibold shadow-lg shadow-accent/20 transition hover:scale-[1.03]"
-          >
-            {signedIn ? "My dashboard" : "Open the app"}
-          </Link>
+            <Link
+              href="/sign-up"
+              className="rounded-xl bg-gradient-to-r from-accent to-glow px-4 py-2 font-semibold shadow-lg shadow-accent/20 transition hover:scale-[1.03]"
+            >
+              Get started
+            </Link>
+          </SignedOut>
+          <SignedIn>
+            <Link
+              href="/dashboard"
+              className="rounded-xl bg-gradient-to-r from-accent to-glow px-4 py-2 font-semibold shadow-lg shadow-accent/20 transition hover:scale-[1.03]"
+            >
+              My dashboard
+            </Link>
+            <UserButton afterSignOutUrl="/" />
+          </SignedIn>
         </nav>
       </header>
 
@@ -117,7 +126,7 @@ export default function Home() {
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
-              href="/dashboard"
+              href={signedIn ? "/dashboard" : "/sign-up"}
               className="rounded-2xl bg-gradient-to-r from-accent to-glow px-6 py-3 text-sm font-semibold shadow-lg shadow-accent/25 transition hover:scale-[1.03]"
             >
               {signedIn ? "Go to your dashboard →" : "Start learning — free"}
@@ -168,7 +177,7 @@ export default function Home() {
             Pick something you&apos;ve always wanted to understand.
           </h2>
           <Link
-            href="/dashboard"
+            href={signedIn ? "/dashboard" : "/sign-up"}
             className="rounded-2xl bg-gradient-to-r from-accent to-glow px-7 py-3 text-sm font-semibold shadow-lg shadow-accent/25 transition hover:scale-[1.03]"
           >
             {signedIn ? "Go to your dashboard →" : "Create your first course →"}

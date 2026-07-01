@@ -2,37 +2,24 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { UserButton, useUser } from "@clerk/nextjs";
 import { useStore } from "@/lib/store";
-import { useAuth } from "@/lib/useAuth";
 import { fetchCloudCourses } from "@/lib/db";
 import CourseTile from "@/components/CourseTile";
 import GenerateModal from "@/components/GenerateModal";
-import AuthModal from "@/components/AuthModal";
 import AccessibilityMenu from "@/components/AccessibilityMenu";
 
 export default function Dashboard() {
-  const router = useRouter();
+  const { user, isLoaded } = useUser();
   const cards = useStore((s) => s.cards);
   const loadAll = useStore((s) => s.loadAll);
-  const reset = useStore((s) => s.reset);
-
-  const auth = useAuth();
   const [gen, setGen] = useState(false);
-  const [menu, setMenu] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [loadingCourses, setLoadingCourses] = useState(true);
 
-  useEffect(() => setMounted(true), []);
-
-  // Sign-in is required: pull the user's courses from the cloud once in.
+  // The dashboard is Clerk-protected (middleware), so the user is signed in
+  // here — load their courses from the cloud.
   useEffect(() => {
-    if (!mounted || auth.loading) return;
-    if (!auth.user) {
-      reset();
-      setLoadingCourses(false);
-      return;
-    }
+    if (!isLoaded || !user) return;
     setLoadingCourses(true);
     fetchCloudCourses()
       .then((res) => {
@@ -40,41 +27,12 @@ export default function Dashboard() {
       })
       .catch(() => {})
       .finally(() => setLoadingCourses(false));
-  }, [mounted, auth.loading, auth.user, loadAll, reset]);
+  }, [isLoaded, user, loadAll]);
 
-  if (!mounted || auth.loading) {
+  if (!isLoaded) {
     return (
       <main className="grid-bg flex min-h-screen items-center justify-center">
         <div className="animate-float text-4xl">🧠</div>
-      </main>
-    );
-  }
-
-  // Backend misconfiguration guard (shouldn't happen in a normal deploy).
-  if (!auth.cloudEnabled) {
-    return (
-      <main className="grid-bg flex min-h-screen items-center justify-center px-6">
-        <div className="glass-strong max-w-md rounded-2xl p-7 text-center">
-          <h1 className="text-xl font-bold">Backend not configured</h1>
-          <p className="mt-2 text-sm text-white/60">
-            This deployment is missing its Supabase keys
-            (<code>NEXT_PUBLIC_SUPABASE_URL</code> /{" "}
-            <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>). Accounts are required to
-            use DiverseLearning.
-          </p>
-          <Link href="/" className="mt-5 inline-block text-accent underline">
-            ← Back home
-          </Link>
-        </div>
-      </main>
-    );
-  }
-
-  // Required sign-in gate.
-  if (!auth.user) {
-    return (
-      <main className="grid-bg flex min-h-screen items-center justify-center">
-        <AuthModal auth={auth} onClose={() => router.push("/")} />
       </main>
     );
   }
@@ -89,7 +47,9 @@ export default function Dashboard() {
               Diverse<span className="grad-text">Learning</span>
             </h1>
           </Link>
-          <p className="text-xs text-white/40">Signed in as {auth.user.email}</p>
+          <p className="text-xs text-white/40">
+            Signed in as {user?.primaryEmailAddress?.emailAddress ?? "you"}
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -100,33 +60,7 @@ export default function Dashboard() {
           >
             + New course
           </button>
-
-          <div className="relative">
-            <button
-              onClick={() => setMenu((m) => !m)}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-sm font-bold uppercase ring-1 ring-white/15 transition hover:bg-white/20"
-              title={auth.user.email ?? "Account"}
-            >
-              {(auth.user.email ?? "?")[0]}
-            </button>
-            {menu && (
-              <div className="glass-strong absolute right-0 mt-2 w-44 rounded-xl p-1.5 text-sm">
-                <div className="truncate px-3 py-2 text-xs text-white/40">
-                  {auth.user.email}
-                </div>
-                <button
-                  onClick={async () => {
-                    setMenu(false);
-                    await auth.signOut();
-                    reset();
-                  }}
-                  className="w-full rounded-lg px-3 py-2 text-left transition hover:bg-white/10"
-                >
-                  Sign out
-                </button>
-              </div>
-            )}
-          </div>
+          <UserButton afterSignOutUrl="/" />
         </div>
       </header>
 

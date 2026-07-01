@@ -1,98 +1,61 @@
 "use client";
 
-import { supabase, currentUserId, isCloudActive } from "./supabase";
 import type { Course, CourseCard } from "./types";
 
-/** Row shape in the `courses` table. The full Course lives in `data` (jsonb);
- *  `layout` holds the draggable tile position so the board persists per user. */
-interface Row {
-  id: string;
-  user_id: string;
-  data: Course;
-  layout: CourseCard["layout"] | null;
-  created_at: string;
-}
+// Client-side data layer. All persistence goes through the Clerk-gated
+// /api/courses route (auth via the Clerk session cookie on same-origin fetch),
+// which talks to Supabase with the server-only service key. These helpers
+// fail soft: if the user isn't signed in the API returns 401 and we no-op.
 
-function rowToCard(r: Row): CourseCard {
-  const c = r.data;
-  return {
-    id: c.id,
-    title: c.title,
-    subtitle: c.subtitle,
-    topic: c.topic,
-    level: c.level,
-    accent: c.accent,
-    lessonCount: c.lessons.length,
-    createdAt: c.createdAt,
-    layout: r.layout ?? undefined,
-  };
-}
-
-/** Load every course for the signed-in user. Returns null in local-only mode. */
 export async function fetchCloudCourses(): Promise<{
   courses: Course[];
   cards: CourseCard[];
 } | null> {
-  if (!supabase || !isCloudActive()) return null;
-  const { data, error } = await supabase
-    .from("courses")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  const rows = (data ?? []) as Row[];
-  return {
-    courses: rows.map((r) => r.data),
-    cards: rows.map(rowToCard),
-  };
+  const res = await fetch("/api/courses", { cache: "no-store" });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return { courses: data.courses ?? [], cards: data.cards ?? [] };
 }
 
-/** Fetch a single course (used for deep-links on a fresh device). */
 export async function fetchCloudCourse(id: string): Promise<Course | null> {
-  if (!supabase || !isCloudActive()) return null;
-  const { data, error } = await supabase
-    .from("courses")
-    .select("data")
-    .eq("id", id)
-    .maybeSingle();
-  if (error || !data) return null;
-  return (data as { data: Course }).data;
+  const res = await fetch(`/api/courses?id=${encodeURIComponent(id)}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return (data.course as Course) ?? null;
 }
 
 export async function saveCloudCourse(
   course: Course,
   layout: CourseCard["layout"]
 ): Promise<void> {
-  if (!supabase || !isCloudActive()) return;
-  const uid = currentUserId();
-  if (!uid) return;
-  const { error } = await supabase
-    .from("courses")
-    .upsert({ id: course.id, user_id: uid, data: course, layout });
-  if (error) throw error;
+  await fetch("/api/courses", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ course, layout }),
+  });
 }
 
 export async function deleteCloudCourse(id: string): Promise<void> {
-  if (!supabase || !isCloudActive()) return;
-  const { error } = await supabase.from("courses").delete().eq("id", id);
-  if (error) throw error;
+  await fetch(`/api/courses?id=${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
 export async function saveCloudLayout(
   id: string,
   layout: CourseCard["layout"]
 ): Promise<void> {
-  if (!supabase || !isCloudActive()) return;
-  const { error } = await supabase.from("courses").update({ layout }).eq("id", id);
-  if (error) throw error;
+  await fetch("/api/courses", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, layout }),
+  });
 }
 
-/** Update only the course JSON (e.g. after attaching a realistic model to a
- *  lesson) without touching the saved tile layout. */
 export async function updateCloudCourseData(course: Course): Promise<void> {
-  if (!supabase || !isCloudActive()) return;
-  const { error } = await supabase
-    .from("courses")
-    .update({ data: course })
-    .eq("id", course.id);
-  if (error) throw error;
+  await fetch("/api/courses", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: course.id, data: course }),
+  });
 }
