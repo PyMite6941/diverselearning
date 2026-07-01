@@ -149,9 +149,6 @@ export default function Home() {
               </div>
             )}
           </div>
-          <div className="pointer-events-none absolute -bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-[11px] text-white/60 ring-1 ring-white/10 backdrop-blur">
-            Drag to rotate · click a part · try “Break apart”
-          </div>
         </div>
       </section>
 
