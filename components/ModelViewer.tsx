@@ -85,6 +85,8 @@ function Part({
   onSelect: (id: string) => void;
 }) {
   const group = useRef<THREE.Group>(null);
+  const spin = useRef<THREE.Group>(null);
+  const material = useRef<THREE.MeshStandardMaterial>(null);
   const [hover, setHover] = useState(false);
   const scale = part.scale ?? [1, 1, 1];
   const rotation = (part.rotation ?? [0, 0, 0]).map((d) => d * DEG) as [
@@ -107,11 +109,13 @@ function Part({
     );
   }, [exploded, spread, dir, part.position]);
 
-  useFrame(() => {
-    const g = group.current;
-    if (!g) return;
-    g.position.lerp(target, 0.16);
-  });
+  // Ring-like parts (gears, orbits, folds) get a slow idle spin; translucent
+  // shells and glowing parts get a gentle emissive pulse — small touches that
+  // make an otherwise static model feel alive.
+  const canSpin =
+    part.shape === "torus" || part.shape === "ring" || part.shape === "torusKnot";
+  const canPulse = isShell || part.finish === "glow";
+  const phase = useMemo(() => Math.random() * Math.PI * 2, []);
 
   const opacity = dim
     ? Math.min(baseOpacity, 0.12)
@@ -121,57 +125,72 @@ function Part({
     ? Math.min(1, baseOpacity + 0.08)
     : baseOpacity;
 
+  const baseEmissive =
+    (active ? 0.5 : hover ? 0.28 : isShell ? 0.12 : 0.06) + fin.extraEmissive;
+
+  useFrame((state, delta) => {
+    const g = group.current;
+    if (g) g.position.lerp(target, 0.16);
+    if (spin.current && canSpin) {
+      spin.current.rotation.z += delta * 0.4;
+    }
+    if (material.current && canPulse) {
+      const pulse = Math.sin(state.clock.elapsedTime * 1.4 + phase) * 0.12;
+      material.current.emissiveIntensity = Math.max(0, baseEmissive + pulse);
+    }
+  });
+
   const transparent = opacity < 1;
   const doubleSided =
     isShell || part.shape === "plane" || part.shape === "ring";
 
   return (
     <group ref={group} position={part.position} rotation={rotation}>
-      <mesh
-        scale={scale as [number, number, number]}
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelect(part.id);
-        }}
-        onPointerOver={(e) => {
-          e.stopPropagation();
-          setHover(true);
-          document.body.style.cursor = "pointer";
-        }}
-        onPointerOut={() => {
-          setHover(false);
-          document.body.style.cursor = "default";
-        }}
-      >
-        <PartGeometry shape={part.shape} />
-        <meshStandardMaterial
-          color={part.color}
-          roughness={fin.roughness}
-          metalness={fin.metalness}
-          transparent={transparent}
-          opacity={opacity}
-          // Don't write depth for translucent shells so inner parts always
-          // show through cleanly (fixes the muddy stacked-sphere look).
-          depthWrite={!transparent}
-          side={doubleSided ? THREE.DoubleSide : THREE.FrontSide}
-          emissive={part.color}
-          emissiveIntensity={
-            (active ? 0.5 : hover ? 0.28 : isShell ? 0.12 : 0.06) +
-            fin.extraEmissive
-          }
-        />
-        {/* Crisp edge outline gives each solid part a clear, diagram-like
-            silhouette. Skipped for smooth shells (no hard edges anyway). */}
-        {!isShell && (
-          <Edges threshold={18}>
-            <lineBasicMaterial
-              color="white"
-              transparent
-              opacity={dim ? 0.06 : active ? 0.45 : 0.22}
-            />
-          </Edges>
-        )}
-      </mesh>
+      <group ref={spin}>
+        <mesh
+          scale={scale as [number, number, number]}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(part.id);
+          }}
+          onPointerOver={(e) => {
+            e.stopPropagation();
+            setHover(true);
+            document.body.style.cursor = "pointer";
+          }}
+          onPointerOut={() => {
+            setHover(false);
+            document.body.style.cursor = "default";
+          }}
+        >
+          <PartGeometry shape={part.shape} />
+          <meshStandardMaterial
+            ref={material}
+            color={part.color}
+            roughness={fin.roughness}
+            metalness={fin.metalness}
+            transparent={transparent}
+            opacity={opacity}
+            // Don't write depth for translucent shells so inner parts always
+            // show through cleanly (fixes the muddy stacked-sphere look).
+            depthWrite={!transparent}
+            side={doubleSided ? THREE.DoubleSide : THREE.FrontSide}
+            emissive={part.color}
+            emissiveIntensity={baseEmissive}
+          />
+          {/* Crisp edge outline gives each solid part a clear, diagram-like
+              silhouette. Skipped for smooth shells (no hard edges anyway). */}
+          {!isShell && (
+            <Edges threshold={18}>
+              <lineBasicMaterial
+                color="white"
+                transparent
+                opacity={dim ? 0.06 : active ? 0.45 : 0.22}
+              />
+            </Edges>
+          )}
+        </mesh>
+      </group>
 
       {/* Membrane lattice: a faint wireframe over spherical shells so they read
           as a containing membrane rather than a frosted ball. */}
@@ -233,6 +252,9 @@ export default function ModelViewer({
   const [selected, setSelected] = useState<string | null>(null);
   const [exploded, setExploded] = useState(false);
   const [spread, setSpread] = useState(2.4);
+  // The model spins gently on its own until the learner does anything with
+  // it — drag, zoom, pick a part, break it apart — then it stays put for good.
+  const [interacted, setInteracted] = useState(false);
   const active = model.parts.find((p) => p.id === selected) ?? null;
 
   // Normalize every model so it's centered at the origin and scaled to a
@@ -303,7 +325,10 @@ export default function ModelViewer({
                   spread={spread}
                   dir={dirs[i]}
                   showLabel={exploded && !active}
-                  onSelect={(id) => setSelected((cur) => (cur === id ? null : id))}
+                  onSelect={(id) => {
+                    setInteracted(true);
+                    setSelected((cur) => (cur === id ? null : id));
+                  }}
                 />
               ))}
             </group>
@@ -322,8 +347,9 @@ export default function ModelViewer({
           enablePan={false}
           minDistance={3}
           maxDistance={16}
-          autoRotate={!active && !exploded}
+          autoRotate={!interacted && !active && !exploded}
           autoRotateSpeed={0.55}
+          onStart={() => setInteracted(true)}
         />
       </Canvas>
 
@@ -336,6 +362,7 @@ export default function ModelViewer({
       <div className="absolute right-4 top-4 z-10 flex flex-col items-end gap-2">
         <button
           onClick={() => {
+            setInteracted(true);
             setExploded((e) => !e);
             setSelected(null);
           }}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Center, Bounds, Html } from "@react-three/drei";
 
@@ -18,6 +18,10 @@ export default function GLBViewer({
   url: string;
   accent?: string;
 }) {
+  // Spins gently on its own until the learner drags, zooms, or pans — then
+  // it stays put for good.
+  const [interacted, setInteracted] = useState(false);
+
   return (
     <div className="relative h-full w-full">
       <Canvas camera={{ position: [0, 0, 5], fov: 45 }} dpr={[1, 1.5]}>
@@ -43,7 +47,13 @@ export default function GLBViewer({
             </Center>
           </Bounds>
         </Suspense>
-        <OrbitControls makeDefault enablePan={false} autoRotate autoRotateSpeed={0.6} />
+        <OrbitControls
+          makeDefault
+          enablePan={false}
+          autoRotate={!interacted}
+          autoRotateSpeed={0.6}
+          onStart={() => setInteracted(true)}
+        />
       </Canvas>
     </div>
   );
