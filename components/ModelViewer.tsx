@@ -51,6 +51,7 @@ function PartGeometry({ shape }: { shape: ModelPart["shape"] }) {
 
 function Part({
   part,
+  index,
   active,
   dim,
   exploded,
@@ -60,6 +61,7 @@ function Part({
   onSelect,
 }: {
   part: ModelPart;
+  index: number;
   active: boolean;
   dim: boolean;
   exploded: boolean;
@@ -70,7 +72,16 @@ function Part({
 }) {
   const group = useRef<THREE.Group>(null);
   const [hover, setHover] = useState(false);
-  const scale = vec3(part.scale, [1, 1, 1]);
+  // Clamp extreme aspect ratios so a part the AI made razor-thin (e.g. a flat
+  // membrane) still reads as a visible shape instead of an invisible sliver.
+  const scale = ((): [number, number, number] => {
+    const s = vec3(part.scale, [1, 1, 1]);
+    const maxS = Math.max(Math.abs(s[0]), Math.abs(s[1]), Math.abs(s[2])) || 1;
+    const floor = maxS / 5; // cap aspect ratio at ~5:1
+    return s.map((v) =>
+      Math.sign(v || 1) * Math.max(Math.abs(v), floor)
+    ) as [number, number, number];
+  })();
   const basePos = vec3(part.position);
   const rotation = vec3(part.rotation).map((d) => d * DEG) as [
     number,
@@ -151,7 +162,13 @@ function Part({
       {(hover || active || showLabel) && !dim && (
         <Html
           distanceFactor={9}
-          position={[0, 0.5 * (scale[1] ?? 1) + 0.28, 0]}
+          // Stagger labels into vertical bands (by part index) so, when every
+          // label shows in exploded view, they don't stack on top of each other.
+          position={[
+            0,
+            0.5 * (scale[1] ?? 1) + 0.28 + (exploded ? (index % 4) * 0.45 : 0),
+            0,
+          ]}
           center
           zIndexRange={[18, 2]}
           style={{ pointerEvents: "none" }}
@@ -190,7 +207,7 @@ export default function ModelViewer({
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [exploded, setExploded] = useState(false);
-  const [spread, setSpread] = useState(2.4);
+  const [spread, setSpread] = useState(3.2);
   const active = model.parts.find((p) => p.id === selected) ?? null;
 
   const { center, fit, dirs } = useMemo(() => {
@@ -264,6 +281,7 @@ export default function ModelViewer({
             <Part
               key={p.id}
               part={p}
+              index={i}
               active={active?.id === p.id}
               dim={!!active && active.id !== p.id}
               exploded={exploded}
@@ -307,7 +325,7 @@ export default function ModelViewer({
             <input
               type="range"
               min={1}
-              max={4}
+              max={6}
               step={0.1}
               value={spread}
               onChange={(e) => setSpread(parseFloat(e.target.value))}
