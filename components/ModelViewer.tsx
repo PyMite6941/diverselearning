@@ -49,29 +49,61 @@ function PartGeometry({ shape }: { shape: ModelPart["shape"] }) {
   }
 }
 
+const _pulseScale = new THREE.Vector3();
+
+/** Idle motion inferred from what a part is *called*, so a model comes across
+ *  as a working mechanism (train wheels turning, a heart pulsing) instead of
+ *  a static prop, even though the AI never specifies joints or animation. */
+type Motion = "spin" | "oscillate" | "pulse" | null;
+
+function classifyMotion(label: string): Motion {
+  const l = label.toLowerCase();
+  if (/\b(wheel|gear|cog|fan|propeller|rotor|blade|turbine|dial|disc|disk|reel)\b/.test(l)) {
+    return "spin";
+  }
+  if (/\b(piston|arm|lever|leg|pendulum|hand|wing|flap|hinge|door|hatch|paddle|oar)\b/.test(l)) {
+    return "oscillate";
+  }
+  if (/\b(heart|core|reactor|engine|light|bulb|led|eye|nucleus|battery|beacon|signal)\b/.test(l)) {
+    return "pulse";
+  }
+  return null;
+}
+
 function Part({
   part,
   index,
   active,
   dim,
+  linked,
   exploded,
   spread,
   dir,
   showLabel,
   onSelect,
+  onHoverChange,
 }: {
   part: ModelPart;
   index: number;
   active: boolean;
   dim: boolean;
+  linked: boolean;
   exploded: boolean;
   spread: number;
   dir: [number, number, number];
   showLabel: boolean;
   onSelect: (id: string) => void;
+  onHoverChange: (id: string | null) => void;
 }) {
   const group = useRef<THREE.Group>(null);
+  const pulse = useRef<THREE.Group>(null);
+  const mesh = useRef<THREE.Mesh>(null);
   const [hover, setHover] = useState(false);
+  const motion = useMemo(() => classifyMotion(part.label ?? ""), [part.label]);
+  // Stable per-part variation so identical parts (e.g. two wheels) don't move
+  // in lockstep.
+  const seed = ((index * 37) % 7) / 7;
+  const spinAxis = part.shape === "torus" || part.shape === "ring" ? "z" : "y";
   // Clamp extreme aspect ratios so a part the AI made razor-thin (e.g. a flat
   // membrane) still reads as a visible shape instead of an invisible sliver.
   const scale = ((): [number, number, number] => {
@@ -103,61 +135,81 @@ function Part({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exploded, spread, dir, basePos[0], basePos[1], basePos[2]]);
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     const g = group.current;
-    if (!g) return;
-    g.position.lerp(target, Math.min(1, delta * 8));
+    if (g) g.position.lerp(target, Math.min(1, delta * 8));
+
+    const p = pulse.current;
+    if (p) {
+      let s = hover || active ? 1.08 : linked ? 1.035 : 1;
+      if (motion === "pulse") s *= 1 + Math.sin(state.clock.elapsedTime * 2.4 + seed * 6) * 0.05;
+      _pulseScale.set(s, s, s);
+      p.scale.lerp(_pulseScale, Math.min(1, delta * 10));
+    }
+
+    const m = mesh.current;
+    if (m && motion === "spin") {
+      const speed = 1.1 + seed * 0.8;
+      m.rotation[spinAxis] += delta * speed;
+    } else if (m && motion === "oscillate") {
+      m.rotation.z = Math.sin(state.clock.elapsedTime * 1.6 + seed * 6) * 0.3;
+    }
   });
 
   return (
     <group ref={group} position={basePos} rotation={rotation}>
-      <mesh
-        scale={scale}
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelect(part.id);
-        }}
-        onPointerOver={(e) => {
-          e.stopPropagation();
-          setHover(true);
-          document.body.style.cursor = "pointer";
-        }}
-        onPointerOut={() => {
-          setHover(false);
-          document.body.style.cursor = "default";
-        }}
-      >
-        <PartGeometry shape={part.shape} />
-        <meshStandardMaterial
-          color={part.color}
-          transparent={transparent}
-          opacity={opacity}
-          depthWrite={!transparent}
-          side={opacity < 1 ? THREE.DoubleSide : THREE.FrontSide}
-        />
-        {opacity >= 0.95 && (
-          <Edges threshold={18}>
-            <lineBasicMaterial
-              color="white"
-              transparent
-              opacity={dim ? 0.06 : active ? 0.45 : hover ? 0.35 : 0.22}
-            />
-          </Edges>
-        )}
-      </mesh>
-
-      {opacity < 0.35 && part.shape === "sphere" && (
-        <mesh scale={scale} raycast={() => null}>
-          <sphereGeometry args={[0.5, 22, 22]} />
-          <meshBasicMaterial
-            wireframe
-            transparent
-            opacity={dim ? 0.04 : 0.1}
+      <group ref={pulse}>
+        <mesh
+          ref={mesh}
+          scale={scale}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(part.id);
+          }}
+          onPointerOver={(e) => {
+            e.stopPropagation();
+            setHover(true);
+            onHoverChange(part.id);
+            document.body.style.cursor = "pointer";
+          }}
+          onPointerOut={() => {
+            setHover(false);
+            onHoverChange(null);
+            document.body.style.cursor = "default";
+          }}
+        >
+          <PartGeometry shape={part.shape} />
+          <meshStandardMaterial
             color={part.color}
-            depthWrite={false}
+            transparent={transparent}
+            opacity={opacity}
+            depthWrite={!transparent}
+            side={opacity < 1 ? THREE.DoubleSide : THREE.FrontSide}
           />
+          {opacity >= 0.95 && (
+            <Edges threshold={18}>
+              <lineBasicMaterial
+                color="white"
+                transparent
+                opacity={dim ? 0.06 : active ? 0.45 : hover ? 0.35 : linked ? 0.3 : 0.22}
+              />
+            </Edges>
+          )}
         </mesh>
-      )}
+
+        {opacity < 0.35 && part.shape === "sphere" && (
+          <mesh scale={scale} raycast={() => null}>
+            <sphereGeometry args={[0.5, 22, 22]} />
+            <meshBasicMaterial
+              wireframe
+              transparent
+              opacity={dim ? 0.04 : 0.1}
+              color={part.color}
+              depthWrite={false}
+            />
+          </mesh>
+        )}
+      </group>
 
       {(hover || active || showLabel) && !dim && (
         <Html
@@ -206,11 +258,14 @@ export default function ModelViewer({
   accent?: string;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
   const [exploded, setExploded] = useState(false);
   const [spread, setSpread] = useState(3.2);
+  const [userTouched, setUserTouched] = useState(false);
   const active = model.parts.find((p) => p.id === selected) ?? null;
+  const focusId = selected ?? hovered;
 
-  const { center, fit, dirs } = useMemo(() => {
+  const { center, fit, dirs, neighbors } = useMemo(() => {
     // AI data can be dirty (strings, missing values, NaN). Coerce every number
     // so a single bad value can't turn `fit` into NaN and hide the whole model
     // (that was the "black canvas" bug — the sample cell has clean data).
@@ -241,8 +296,28 @@ export default function ModelViewer({
       return [d.x, d.y, d.z] as [number, number, number];
     });
 
-    return { center: c, fit: fitScale, dirs: ds };
+    // Nearest other part, so hovering/selecting one can visibly "link" to
+    // its closest neighbor (e.g. an axle lighting up next to its wheel).
+    const positions = model.parts.map(posOf);
+    const ns = model.parts.map((_, i) => {
+      let best = -1;
+      let bestDist = Infinity;
+      positions.forEach((pos, j) => {
+        if (j === i) return;
+        const d = pos.distanceTo(positions[i]);
+        if (d < bestDist) {
+          bestDist = d;
+          best = j;
+        }
+      });
+      return best;
+    });
+
+    return { center: c, fit: fitScale, dirs: ds, neighbors: ns };
   }, [model.parts]);
+
+  const focusIndex = focusId ? model.parts.findIndex((p) => p.id === focusId) : -1;
+  const linkedIndex = focusIndex >= 0 ? neighbors[focusIndex] : -1;
 
   // The AI picks a viewing DIRECTION, but the model is normalized to a fixed
   // size — so use only the direction and a constant distance that always frames
@@ -284,11 +359,13 @@ export default function ModelViewer({
               index={i}
               active={active?.id === p.id}
               dim={!!active && active.id !== p.id}
+              linked={i === linkedIndex}
               exploded={exploded}
               spread={spread}
               dir={dirs[i]}
               showLabel={exploded && !active}
               onSelect={(id) => setSelected((cur) => (cur === id ? null : id))}
+              onHoverChange={setHovered}
             />
           ))}
         </group>
@@ -296,8 +373,9 @@ export default function ModelViewer({
           enablePan={false}
           minDistance={3}
           maxDistance={16}
-          autoRotate={!active && !exploded}
+          autoRotate={!userTouched && !active && !exploded}
           autoRotateSpeed={0.55}
+          onStart={() => setUserTouched(true)}
         />
       </Canvas>
 
