@@ -15,6 +15,8 @@ const ModelViewer = dynamic(() => import("@/components/ModelViewer"), {
   ),
 });
 
+
+
 const FEATURES = [
   {
     icon: "✨",
@@ -57,16 +59,18 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
+    // Mount the 3D hero as soon as the page is idle, but ALWAYS within ~600ms
+    // even if the tab never reports idle (a hard timeout guarantees it shows).
     let idleId: number | undefined;
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeoutId = setTimeout(() => setReady(true), 600);
     if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      idleId = (window as any).requestIdleCallback(() => setReady(true));
-    } else {
-      timeoutId = setTimeout(() => setReady(true), 200);
+      idleId = (window as any).requestIdleCallback(() => setReady(true), {
+        timeout: 600,
+      });
     }
     return () => {
       if (idleId !== undefined) (window as any).cancelIdleCallback?.(idleId);
-      if (timeoutId !== undefined) clearTimeout(timeoutId);
+      clearTimeout(timeoutId);
     };
   }, []);
 

@@ -1,13 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  // Remove the X-Powered-By: Next.js header for a cleaner security posture.
+  reactStrictMode: false,
   poweredByHeader: false,
   transpilePackages: ["three"],
-  experimental: {
-    // Tree-shake the large drei barrel so only used helpers are bundled.
-    optimizePackageImports: ["@react-three/drei"],
-  },
   images: {
     remotePatterns: [
       // Poly Pizza CDN — used when POLY_PIZZA_API_KEY is set and a real model
