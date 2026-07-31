@@ -1,33 +1,5 @@
 # DiverseLearning
 
-## Inspiration
-
-For this project I was told to think with how other people who are neurodiverse would want to learn and I realized that modeled learning is best because it reduces unnecessary words and shows what each part does.
-
-## What it does
-
-There is AI creating a 3D model when a course is created that is then saved for the user to see at a later time, and the courses involve some writing that can be listened to as desired.
-
-## How we built it
-
-I built this with React Vite as the frontend and the backend is a Groq API key and a Supabase DB to store the user's preferences and their json model data.
-
-## Challenges we ran into
-
-A challenge I had was not getting rate limited, we are still solving that issue because free AI models aren't the best as of now on creating good 3D models.
-
-## Accomplishments that we're proud of
-
-The models showing up was super great since that made the proof of concept a reality.
-
-## What we learned
-
-I learned how valuable 3D modeling is in learning and I hope that it continues to be apart of learning for everyone.
-
-## What's next for Diverse Learning
-
-I plan to keep expanding on it as much as possible and making it so much better to include AI-created videos and etc, I intend to make sure everyone's most successful learning method is used.
-
 Your personal, interactive **3D classroom**. Tell it anything you're curious about and it generates a course built just for you — concepts rendered as 3D models you can rotate, explode, and take apart, part by part.
 
 **Live:** https://diverselearning.vercel.app
@@ -131,4 +103,6 @@ vercel --prod
 
 Set every env var above in the Vercel project (Production/Preview/Development).
 
-See [`TODO.md`](TODO.md) for the roadmap.
+See [`TODO.md`](TODO.md) for the roadmap and [`DEVPOST.md`](DEVPOST.md) for the
+IncludAI 2026 submission working doc (including the disclosure of which parts of this
+project predate the hackathon).

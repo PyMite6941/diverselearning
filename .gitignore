@@ -29,3 +29,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# private submission notes (personal detail, not for the public repo)
+NOTES-private.md
