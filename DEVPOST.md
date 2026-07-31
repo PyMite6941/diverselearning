@@ -14,7 +14,7 @@ Track: **AI for Learners Who Think Differently** (K–12 neurodivergent students
 | # | Requirement | Status |
 |---|---|---|
 | 1 | Public GitHub repository | ✅ **public** — https://github.com/PyMite6941/diverselearning |
-| 2 | Demo video, **3:00 max**, YouTube/Vimeo, English (or EN subtitles) | 🟡 `videos/demo-includai-3min.mp4` cut to **2:47** — still needs uploading to YouTube |
+| 2 | Demo video, **3:00 max**, YouTube/Vimeo, English (or EN subtitles) | 🟡 `videos/demo-includai-3min-narrated.mp4` — **2:47, narrated** — still needs uploading to YouTube |
 | 3 | Written project description (problem, users, AI use, ND involvement) | 🟡 drafted below |
 | 4 | **Evidence** real neurodivergent users were involved in design/testing | ❌ **not done** — hard requirement, see §4 |
 | 5 | "Substantially built during the hackathon period" + disclose pre-existing code | 🟡 disclosure drafted in §5; build work must happen Aug 1–8 |
@@ -229,9 +229,18 @@ Notes on the cut:
   also satisfies the English-language requirement without needing subtitles.
 - **The app header's "Signed in as \<personal email\>" is blurred** on every dashboard
   shot. It was plainly legible in the raw recording and this video goes on YouTube.
-- Music sits at ~55% volume, so a voiceover can be laid over the top without a re-cut.
-  **Adding narration would be the single biggest win available** — presentation is 10%
-  of the score and a silent demo makes the judges work harder than they should have to.
+**Two cuts exist:**
+- `demo-includai-3min-narrated.mp4` — **upload this one.** Narration over a quiet music
+  bed, loudness-normalised to about -16 LUFS.
+- `demo-includai-3min.mp4` — the same picture, music only. Keep it as the base for
+  re-recording the voiceover.
+
+**The narration is currently a Windows TTS voice, and re-recording it in your own voice
+is the single best remaining improvement.** The whole script is a first-person account of
+how you learn — a synthetic voice actively works against that, and it is the one thing
+tying the demo to the Neurodivergent Innovator claim in §7. The timed script is in
+[`videos/NARRATION.md`](videos/NARRATION.md); reading it aloud takes about three minutes,
+and `videos/mix-narration.sh` will drop your recordings in without re-cutting the video.
 
 ## 7. Neurodivergent Innovator Award ($500)
 
