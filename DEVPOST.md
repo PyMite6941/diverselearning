@@ -13,8 +13,8 @@ Track: **AI for Learners Who Think Differently** (K–12 neurodivergent students
 
 | # | Requirement | Status |
 |---|---|---|
-| 1 | Public GitHub repository | ❌ repo is currently **private** — must be flipped to public |
-| 2 | Demo video, **3:00 max**, YouTube/Vimeo, English (or EN subtitles) | ❌ existing `videos/demo-with-music.mp4` is **6:40** — needs a new cut |
+| 1 | Public GitHub repository | ✅ **public** — https://github.com/PyMite6941/diverselearning |
+| 2 | Demo video, **3:00 max**, YouTube/Vimeo, English (or EN subtitles) | 🟡 `videos/demo-includai-3min.mp4` cut to **2:47** — still needs uploading to YouTube |
 | 3 | Written project description (problem, users, AI use, ND involvement) | 🟡 drafted below |
 | 4 | **Evidence** real neurodivergent users were involved in design/testing | ❌ **not done** — hard requirement, see §4 |
 | 5 | "Substantially built during the hackathon period" + disclose pre-existing code | 🟡 disclosure drafted in §5; build work must happen Aug 1–8 |
@@ -193,12 +193,45 @@ Candidates that serve the 30%-impact and 25%-accessibility criteria:
 |---|---|---|---|
 | OpenDyslexic font | self-hosted, `public/fonts/` | `TODO — confirm and state (OFL)` | `TODO` |
 | 3D models (realistic mode) | Poly Pizza, NASA 3D, NIH 3D, Smithsonian, Wikimedia | per-source, mostly CC / public domain | `lib/modelSources.ts` |
-| Demo video backing track | *Gymnopédie No.1* (Satie) | composition public domain — **the recording may not be** | `TODO — verify the recording's license or replace it` |
+| Demo video music | Schumann, *Kinderszenen* Op. 15 No. 7 ("Träumerei") — Musopen recording via [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Robert_Schumann_-_scenes_from_childhood,_op._15_-_vii._dreaming.ogg) | **Public domain** (`Copyrighted: False`) — no attribution or share-alike obligation | credited anyway in the YouTube description |
 
-⚠️ The demo video's backing track is a real risk: Satie's composition is public domain
-but a specific *recording* usually isn't, and a YouTube Content ID claim on the demo
-video would be a bad thing to discover on Aug 8. Use a recording explicitly licensed
-CC0/CC-BY, or drop the music.
+The old 6:40 cut used a *Gymnopédie No.1* recording whose license was never verified —
+the composition is public domain but the recording usually isn't, which risks a YouTube
+Content ID claim. The new cut replaces it with a Musopen public-domain recording, so
+there is nothing to clear. Kinderszenen also happens to mean "Scenes from Childhood",
+which is a better fit for a K–12 learning tool.
+
+**Suggested YouTube description credit:**
+> Music: Robert Schumann, *Kinderszenen* Op. 15 No. 7 ("Träumerei"). Public-domain
+> recording from Musopen, via Wikimedia Commons.
+
+## 6b. The 2:47 cut — what it contains
+
+`videos/demo-includai-3min.mp4` (2:47, 1440×900). Rebuild it with
+`videos/build-includai-cut.sh` (needs ffmpeg + the source `videos/demo.mp4`).
+
+| Time | Scene |
+|---|---|
+| 0:00 | Title card |
+| 0:04 | Empty board — "start with any topic you're curious about" |
+| 0:16 | Ask for a topic; pick a learning style |
+| 0:42 | Course built |
+| 0:49 | Open the course — the lesson *is* the model |
+| 1:11 | **Break apart** — labeled pieces, click one to inspect it |
+| 1:47 | Accessibility — recolor the theme, dyslexia font, roomier text |
+| 2:29 | Courses saved to the account |
+| 2:41 | End card with links |
+
+Notes on the cut:
+- The raw recording's dead time (the blank intro, the tile-dragging stretch, long idle
+  holds) is gone; nothing is sped up, so nothing looks rushed.
+- On-screen captions carry the narrative, since the recording has no voiceover — this
+  also satisfies the English-language requirement without needing subtitles.
+- **The app header's "Signed in as \<personal email\>" is blurred** on every dashboard
+  shot. It was plainly legible in the raw recording and this video goes on YouTube.
+- Music sits at ~55% volume, so a voiceover can be laid over the top without a re-cut.
+  **Adding narration would be the single biggest win available** — presentation is 10%
+  of the score and a silent demo makes the judges work harder than they should have to.
 
 ## 7. Neurodivergent Innovator Award ($500)
 
