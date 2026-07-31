@@ -87,6 +87,12 @@ export default function Home() {
           Diverse<span className="grad-text">Learning</span>
         </span>
         <nav className="flex items-center gap-3 text-sm">
+          <Link
+            href="/learn"
+            className="hidden rounded-xl px-3 py-2 font-medium text-white/70 transition hover:text-white sm:inline-block"
+          >
+            Library
+          </Link>
           <SignedOut>
             <Link
               href="/sign-in"
@@ -130,13 +136,19 @@ export default function Home() {
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
-              href={signedIn ? "/dashboard" : "/sign-up"}
+              href="/learn"
               className="rounded-2xl bg-gradient-to-r from-accent to-glow px-6 py-3 text-sm font-semibold shadow-lg shadow-accent/25 transition hover:scale-[1.03]"
             >
-              {signedIn ? "Go to your dashboard →" : "Start learning — free"}
+              Browse the library →
             </Link>
-            <span className="text-xs text-white/40">
-              No setup · works right in your browser
+            <Link
+              href={signedIn ? "/dashboard" : "/sign-up"}
+              className="rounded-2xl border border-white/15 px-6 py-3 text-sm font-semibold text-white/80 transition hover:bg-white/10"
+            >
+              {signedIn ? "Your dashboard" : "Build your own"}
+            </Link>
+            <span className="w-full text-xs text-white/40 sm:w-auto">
+              No account needed to explore
             </span>
           </div>
         </div>

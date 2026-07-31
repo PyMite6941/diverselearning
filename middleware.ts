@@ -1,8 +1,16 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-// Public: the landing page and the Clerk auth pages. Everything else
-// (dashboard, course viewer, all /api routes) requires sign-in.
-const isPublicRoute = createRouteMatcher(["/", "/sign-in(.*)", "/sign-up(.*)"]);
+// Public: the landing page, the Clerk auth pages, the concept library, and the
+// course viewer (so anyone can browse + open a library course without an
+// account). The dashboard and the generate/cloud API routes still require
+// sign-in — those are gated in their own handlers.
+const isPublicRoute = createRouteMatcher([
+  "/",
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/learn",
+  "/course(.*)",
+]);
 
 export default clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute(request)) {

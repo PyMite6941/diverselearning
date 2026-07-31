@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import { fetchCloudCourse } from "@/lib/db";
+import { getCatalogCourse, isCatalogCourse } from "@/lib/catalog";
 import AccessibilityMenu from "@/components/AccessibilityMenu";
 import LessonReader from "@/components/LessonReader";
 import ConceptView from "@/components/ConceptView";
@@ -52,6 +53,12 @@ export default function CoursePage() {
   useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (!mounted) return;
+    // Built-in library course — always available, no store or cloud needed.
+    const catalog = getCatalogCourse(id);
+    if (catalog) {
+      setCourse(catalog);
+      return;
+    }
     const local = getCourse(id);
     if (local) {
       setCourse(local);
@@ -92,6 +99,9 @@ export default function CoursePage() {
 
   const lesson = course.lessons[active];
   const currentAsset: Asset | undefined = assets[active] ?? lesson.asset;
+  const fromLibrary = isCatalogCourse(id);
+  const backHref = fromLibrary ? "/learn" : "/dashboard";
+  const backLabel = fromLibrary ? "Library" : "Dashboard";
 
   async function findRealistic() {
     setFinding(true);
@@ -123,10 +133,10 @@ export default function CoursePage() {
         <div className="p-6">
           <div className="flex items-center justify-between">
             <Link
-              href="/dashboard"
+              href={backHref}
               className="text-xs text-white/40 transition hover:text-white"
             >
-              ← Dashboard
+              ← {backLabel}
             </Link>
             <AccessibilityMenu />
           </div>
