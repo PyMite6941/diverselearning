@@ -41,6 +41,7 @@ Your personal, interactive **3D classroom**. Tell it anything you're curious abo
 - **Realistic models** — pull real glTF/GLB models from free, open libraries (Poly Pizza, NASA 3D, NIH 3D…) when a diagram isn't enough; found models are saved into the course.
 - **Accounts + cloud sync** — sign in with email (Clerk); your courses save to your account and follow you to any device. Board positions persist too.
 - **Built for every reader** — one-tap OpenDyslexic font, roomier text, a fully recolorable theme, and a lesson reader with line numbers + text-to-speech.
+- **Text stats** — an optional bottom-left counter (words, characters, letters, repeated letters) that measures only what's on screen as you scroll, or the whole page if you switch the scope in Appearance.
 
 ## Stack
 
@@ -79,8 +80,11 @@ components/
   CourseTile.tsx            Draggable glass tile
   GenerateModal.tsx         "What do you want to learn?" prompt
   LessonReader.tsx          Line numbers + line reader + text-to-speech
-  AccessibilityMenu.tsx     Theme colors + dyslexia font + roomy text
+  AccessibilityMenu.tsx     Theme colors + dyslexia font + roomy text + text stats
+  TextStatsOverlay.tsx      Bottom-left word/character/repeat counter
 lib/
+  textStats.ts              Word, character and repeated-letter counting (pure)
+  visibleText.ts            Scrapes on-screen (or whole-page) text from the DOM
   provider.ts               Groq→OpenRouter chat with failover
   courseGen.ts              Prompt + JSON hydrate (+ sample used only for the hero)
   types.ts                  Course / Lesson / ModelSpec schema (data-driven models)

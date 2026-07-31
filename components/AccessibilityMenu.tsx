@@ -11,9 +11,15 @@ export default function AccessibilityMenu() {
   const {
     dyslexiaFont,
     roomyText,
+    textStats,
+    textStatsScope,
+    textStatsRepeatDetail,
     theme,
     setDyslexiaFont,
     setRoomyText,
+    setTextStats,
+    setTextStatsScope,
+    setTextStatsRepeatDetail,
     setTheme,
     patchTheme,
     resetTheme,
@@ -135,10 +141,74 @@ export default function AccessibilityMenu() {
               </span>
               <Switch on={roomyText} />
             </button>
+            <button
+              onClick={() => setTextStats(!textStats)}
+              className="flex w-full items-center justify-between rounded-xl px-2 py-2.5 text-left transition hover:bg-white/10"
+            >
+              <span>
+                <span className="block">Text stats</span>
+                <span className="block text-xs text-white/40">
+                  Words, characters &amp; repeats, bottom left
+                </span>
+              </span>
+              <Switch on={textStats} />
+            </button>
+
+            {textStats && (
+              <div className="mt-1 space-y-2 rounded-xl bg-white/5 p-2">
+                <p className="text-[11px] text-white/40">Count</p>
+                <div className="flex gap-1 rounded-lg bg-black/25 p-1">
+                  <ScopeButton
+                    label="On screen"
+                    active={textStatsScope === "screen"}
+                    onClick={() => setTextStatsScope("screen")}
+                  />
+                  <ScopeButton
+                    label="Whole page"
+                    active={textStatsScope === "page"}
+                    onClick={() => setTextStatsScope("page")}
+                  />
+                </div>
+                <p className="px-0.5 text-[11px] leading-snug text-white/35">
+                  {textStatsScope === "screen"
+                    ? "Only the text you can see right now — the numbers change as you scroll."
+                    : "Everything on the page, scrolled off or not."}
+                </p>
+                <button
+                  onClick={() => setTextStatsRepeatDetail(!textStatsRepeatDetail)}
+                  className="flex w-full items-center justify-between rounded-lg px-1 py-1.5 text-left transition hover:bg-white/10"
+                >
+                  <span className="text-xs text-white/70">Per-letter repeats</span>
+                  <Switch on={textStatsRepeatDetail} />
+                </button>
+              </div>
+            )}
           </div>
         </>
       )}
     </div>
+  );
+}
+
+function ScopeButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={active}
+      className={`flex-1 rounded-md px-2 py-1 text-xs font-medium transition ${
+        active ? "bg-white/15 text-white" : "text-white/50 hover:text-white"
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 

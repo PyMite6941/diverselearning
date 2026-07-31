@@ -236,8 +236,9 @@ export default function CoursePage() {
           </div>
         )}
 
-        {/* Teaching text */}
-        <div className="flex-1 overflow-y-auto p-8">
+        {/* Teaching text. Marked as the text-stats root so the bottom-left
+            counter measures the lesson, not the surrounding chrome. */}
+        <div className="flex-1 overflow-y-auto p-8" data-text-stats-root>
           <div className="mx-auto max-w-2xl">
             <p className="text-xs uppercase tracking-widest text-white/30">
               Lesson {active + 1} of {course.lessons.length}
