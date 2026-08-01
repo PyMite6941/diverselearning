@@ -20,19 +20,50 @@ community, including people in exactly your situation.
 They do not have to be a stranger, a student, or an expert. A friend, a sibling, a
 classmate is fine.
 
+> **Can I be my own neurodivergent user?** For the **Neurodivergent Innovator Award**
+> ("led by a neurodivergent individual"), yes — self-identification covers it. For **this
+> requirement**, no, don't rely on it. The rule asks you to *"describe who participated"*
+> and how *"feedback shaped the project"*, and the organizers' own Resources page spells
+> out the intent: *"The strongest projects don't guess at these needs. They ask a real
+> neurodivergent user and build from the answer."* It is a hard requirement, not a scored
+> criterion — failing it invalidates the entry rather than costing points.
+
 **Where to look, in order of how fast it will work:**
 
-1. **The IncludAI participant community (Discord/Slack).** By far the best lead. This is
-   a neurodiversity hackathon — a large share of participants are themselves
-   neurodivergent, they understand exactly what you are asking for, and swapping testing
-   with another team is normal and mutually useful. Offer to test theirs in return.
-2. **People you already know.** Someone in your circle is neurodivergent. You do not
+1. **The IncludAI Discord — https://discord.gg/bEXbrJxvu.** By far the best lead, and the
+   organizers point at it for exactly this ("Need a teammate or a mentor? Our Discord
+   community is here all week"). This is a neurodiversity hackathon: a large share of the
+   159 participants are themselves neurodivergent, they understand the ask immediately,
+   and swapping testing with another team is normal. Offer to test theirs in return.
+
+   Message to send:
+
+   > Hey — solo builder here. I've made a learning tool that turns any topic into a 3D
+   > model you can pull apart, instead of a wall of text, with dyslexia font, full
+   > recolouring, a line reader, TTS and now full keyboard control. It's live and takes
+   > about 5 minutes to try: https://diverselearning.vercel.app
+   >
+   > Looking for a neurodivergent tester for 30 minutes this week — I want to watch
+   > someone use it cold and tell me what's annoying. No prep, and you don't have to tell
+   > me anything personal. **Happy to test your project back.**
+
+2. **The Devpost discussion board — https://includai-2026.devpost.com/forum_topics.**
+   As of Aug 1 it is completely empty, so a post there is the only thing on the board and
+   every participant sees it. Suggested title: *"Swapping 30-min user tests? I'll test
+   yours if you test mine"* — a swap thread helps everyone hit the same hard requirement,
+   which makes it a genuinely useful post rather than a plea.
+3. **Email the organizers — contact@includedu.org.** They run a neurodiversity
+   non-profit and offer mentors all week. Ask two things in one message: whether they can
+   point you to a tester, and (in writing) whether a self-identifying neurodivergent
+   solo builder satisfies the requirement on their own. Their answer settles it either
+   way, and asking is not a bad look — it shows you read the rules.
+4. **People you already know.** Someone in your circle is neurodivergent. You do not
    need to know who in advance — see the script below, which lets people self-select
    instead of being asked a personal question.
-3. **ICS Bangkok learning support.** The learning-support or student-services staff work
+5. **ICS Bangkok learning support.** The learning-support or student-services staff work
    with neurodivergent students daily and can pass on a request. Ask the staff member,
    not the students — let them do the introducing.
-4. **Online communities.** r/neurodiversity, r/ADHD, r/dyslexia, r/autism, and
+6. **Online communities.** r/neurodiversity, r/ADHD, r/dyslexia, r/autism, and
    subject Discords. **Read the rules first** — many of these ban recruitment and
    research posts outright, and getting this wrong reflects badly on the project. Where
    it is allowed, post as a student showing a tool, not as a researcher collecting data.
