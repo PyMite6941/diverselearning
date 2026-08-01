@@ -7,6 +7,14 @@ Track: **AI for Learners Who Think Differently** (K–12 neurodivergent students
 > This file is the working doc for the Devpost submission. Anything marked **`TODO`**
 > is not true yet and must not be pasted into the submission until it is.
 
+**Companion files:**
+- [`SUBMISSION.md`](SUBMISSION.md) — paste-ready Devpost text. Two blanks left: the
+  co-design evidence and the video URL.
+- [`CODESIGN.md`](CODESIGN.md) — how to find a tester, run the session, and turn it into
+  the evidence the rules require.
+- [`videos/NARRATION.md`](videos/NARRATION.md) — timed script for re-recording the
+  voiceover.
+
 ---
 
 ## 1. Submission checklist
@@ -178,14 +186,21 @@ predate the hackathon (June 2026). Paste this verbatim into the Devpost descript
 > and is visible in the public commit history: `TODO — list it here`.
 
 **This means the week's build has to be substantial and ND-informed**, not polish.
-Candidates that serve the 30%-impact and 25%-accessibility criteria:
-- Task-initiation support — break a lesson into a first 60-second step, since "starting"
-  is the named barrier in the track description.
-- Keyboard + switch navigation for the 3D viewer (currently mouse/touch only) — this is
-  a genuine accessibility gap, already in `TODO.md`.
-- Reading-load controls: adjustable text density per lesson, or an AI "say this in fewer
-  words" rewrite of any paragraph.
-- Whatever the §4 session surfaces — **this should outrank everything above.**
+
+Built so far this week (`598a202`):
+- ✅ **Full keyboard + screen-reader operation of the 3D viewer.** It was pointer-only.
+  Arrow keys step through parts, `B` breaks apart, `Shift`+arrows rotate, `Z`/`X` zoom,
+  and the selected part is mirrored into an `aria-live` region because a WebGL canvas is
+  opaque to assistive tech. On-screen key legend included.
+- ✅ **Task-initiation support** (`components/FirstStep.tsx`) — one small action at a
+  time, next step withheld until the current one is done. Derived from the lesson's own
+  data, so no AI call and no API key needed.
+
+Still available:
+- Reading-load controls: adjustable text density, or an AI "say this in fewer words"
+  rewrite of any paragraph.
+- Switch-device support, now that the keyboard layer exists to build on.
+- **Whatever the §4 session surfaces — this outranks everything above.**
 
 ## 6. Third-party assets & licenses
 
