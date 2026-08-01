@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Html, Edges } from "@react-three/drei";
 import * as THREE from "three";
@@ -262,6 +262,12 @@ export default function ModelViewer({
   const [exploded, setExploded] = useState(false);
   const [spread, setSpread] = useState(3.2);
   const [userTouched, setUserTouched] = useState(false);
+  const [showKeys, setShowKeys] = useState(false);
+  // Announced to screen readers when the selection changes. The 3D canvas is
+  // opaque to assistive tech, so the part's label + explanation is mirrored
+  // into a live region as plain text.
+  const [announcement, setAnnouncement] = useState("");
+  const controlsRef = useRef<any>(null);
   const active = model.parts.find((p) => p.id === selected) ?? null;
   const focusId = selected ?? hovered;
 
@@ -334,8 +340,150 @@ export default function ModelViewer({
     return [framed.x, framed.y, framed.z];
   }, [model.cameraPosition]);
 
+  // --- Keyboard access -----------------------------------------------------
+  // The viewer was pointer-only: every part could be reached by mouse or touch
+  // and by nothing else. These handlers make the whole model operable from the
+  // keyboard, which also gives switch-device users a route in.
+
+  const step = useCallback(
+    (delta: number) => {
+      const n = model.parts.length;
+      if (!n) return;
+      setUserTouched(true);
+      setSelected((cur) => {
+        const i = cur ? model.parts.findIndex((p) => p.id === cur) : -1;
+        const next = i < 0 ? (delta > 0 ? 0 : n - 1) : (i + delta + n) % n;
+        return model.parts[next].id;
+      });
+    },
+    [model.parts]
+  );
+
+  const orbit = useCallback((dAzimuth: number, dPolar: number) => {
+    const c = controlsRef.current;
+    if (!c) return;
+    setUserTouched(true);
+    c.setAzimuthalAngle(c.getAzimuthalAngle() + dAzimuth);
+    // Stop short of the poles, where the camera flips over.
+    c.setPolarAngle(
+      Math.min(Math.PI - 0.06, Math.max(0.06, c.getPolarAngle() + dPolar))
+    );
+    c.update();
+  }, []);
+
+  const zoom = useCallback((factor: number) => {
+    const c = controlsRef.current;
+    if (!c) return;
+    setUserTouched(true);
+    const cam = c.object as THREE.Camera;
+    const offset = cam.position.clone().sub(c.target);
+    const len = Math.min(16, Math.max(3, offset.length() * factor));
+    cam.position.copy(c.target).add(offset.normalize().multiplyScalar(len));
+    c.update();
+  }, []);
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    // Let the browser keep Tab for moving focus out of the viewer.
+    if (e.key === "Tab") return;
+
+    const shift = e.shiftKey;
+    const ORBIT = 0.22;
+    let handled = true;
+
+    switch (e.key) {
+      case "ArrowRight":
+        shift ? orbit(ORBIT, 0) : step(1);
+        break;
+      case "ArrowLeft":
+        shift ? orbit(-ORBIT, 0) : step(-1);
+        break;
+      case "ArrowUp":
+        shift ? orbit(0, -ORBIT) : step(-1);
+        break;
+      case "ArrowDown":
+        shift ? orbit(0, ORBIT) : step(1);
+        break;
+      case "Enter":
+      case " ":
+        if (selected) {
+          // Re-announce the current part, so a screen-reader user can repeat
+          // the explanation without moving the selection.
+          setAnnouncement("");
+          const p = model.parts.find((x) => x.id === selected);
+          if (p) window.setTimeout(() => setAnnouncement(`${p.label}. ${p.explanation}`), 40);
+        } else {
+          step(1);
+        }
+        break;
+      case "Escape":
+        setSelected(null);
+        setAnnouncement("Selection cleared.");
+        break;
+      case "b":
+      case "B":
+        setExploded((v) => {
+          setAnnouncement(v ? "Model collapsed." : "Model broken apart into its parts.");
+          return !v;
+        });
+        setSelected(null);
+        break;
+      case "+":
+      case "=":
+        if (exploded) setSpread((s) => Math.min(6, s + 0.4));
+        break;
+      case "-":
+      case "_":
+        if (exploded) setSpread((s) => Math.max(1, s - 0.4));
+        break;
+      case "z":
+      case "Z":
+        zoom(0.85);
+        break;
+      case "x":
+      case "X":
+        zoom(1.18);
+        break;
+      case "?":
+      case "/":
+        setShowKeys((v) => !v);
+        break;
+      default:
+        handled = false;
+    }
+
+    // Arrows and space scroll the page by default; the viewer owns them here.
+    if (handled) e.preventDefault();
+  }
+
+  // Mirror the selected part into the live region for screen readers.
+  useEffect(() => {
+    if (active) setAnnouncement(`${active.label}. ${active.explanation}`);
+  }, [active?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const KEYS: [string, string][] = [
+    ["← →", "Previous / next part"],
+    ["Enter", "Read the selected part again"],
+    ["Esc", "Clear the selection"],
+    ["B", "Break apart / collapse"],
+    ["+ −", "Spread the parts further / closer"],
+    ["Shift + arrows", "Rotate the model"],
+    ["Z / X", "Zoom in / out"],
+    ["?", "Show or hide this list"],
+  ];
+
   return (
-    <div className="relative h-full w-full">
+    <div
+      role="application"
+      tabIndex={0}
+      onKeyDown={onKeyDown}
+      aria-label={`Interactive 3D model: ${model.caption}. ${model.parts.length} parts. Use the left and right arrow keys to move between parts, and press question mark for all controls.`}
+      className="relative h-full w-full outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-inset"
+    >
+      {/* Screen-reader mirror of the 3D canvas, which is otherwise opaque. */}
+      <p className="sr-only" aria-live="polite" role="status">
+        {announcement}
+      </p>
+
       <Canvas
         camera={{ position: camPos, fov: 45 }}
         onPointerMissed={() => setSelected(null)}
@@ -370,6 +518,7 @@ export default function ModelViewer({
           ))}
         </group>
         <OrbitControls
+          ref={controlsRef}
           enablePan={false}
           minDistance={3}
           maxDistance={16}
@@ -399,8 +548,9 @@ export default function ModelViewer({
         </button>
         {exploded && (
           <div className="flex items-center gap-2 rounded-xl bg-black/60 px-3 py-1.5 text-[11px] text-white/70 ring-1 ring-white/15">
-            <span>Spread</span>
+            <label htmlFor="spread-range">Spread</label>
             <input
+              id="spread-range"
               type="range"
               min={1}
               max={6}
@@ -409,6 +559,32 @@ export default function ModelViewer({
               onChange={(e) => setSpread(parseFloat(e.target.value))}
               className="h-1 w-24 cursor-pointer accent-white"
             />
+          </div>
+        )}
+
+        <button
+          onClick={() => setShowKeys((v) => !v)}
+          aria-expanded={showKeys}
+          className="rounded-xl bg-black/60 px-3 py-1.5 text-xs font-medium text-white/70 ring-1 ring-white/15 transition hover:bg-black/80 hover:text-white"
+        >
+          ⌨ Keyboard
+        </button>
+
+        {showKeys && (
+          <div className="w-60 rounded-xl bg-black/85 p-3 text-[11px] text-white/80 shadow-xl ring-1 ring-white/15 backdrop-blur">
+            <p className="mb-2 font-semibold text-white">
+              Everything here works without a mouse
+            </p>
+            <dl className="space-y-1.5">
+              {KEYS.map(([k, what]) => (
+                <div key={k} className="flex items-baseline gap-2">
+                  <dt className="flex-none rounded bg-white/15 px-1.5 py-0.5 font-mono text-[10px] text-white">
+                    {k}
+                  </dt>
+                  <dd className="flex-1 leading-snug text-white/70">{what}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
         )}
       </div>
@@ -430,8 +606,8 @@ export default function ModelViewer({
         ) : (
           <div className="pointer-events-none rounded-full bg-black/60 px-4 py-1.5 text-xs text-white/70 shadow-lg ring-1 ring-white/10 backdrop-blur">
             {exploded
-              ? "Click any separated part to read what it does"
-              : "Drag to rotate · click a part · or Break apart to see every piece"}
+              ? "Click a separated part — or use ← → to step through them"
+              : "Drag to rotate · click a part · press B to break it apart"}
           </div>
         )}
       </div>

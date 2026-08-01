@@ -10,6 +10,7 @@ import { getCatalogCourse, isCatalogCourse } from "@/lib/catalog";
 import AccessibilityMenu from "@/components/AccessibilityMenu";
 import LessonReader from "@/components/LessonReader";
 import ConceptView from "@/components/ConceptView";
+import FirstStep from "@/components/FirstStep";
 import type { Course } from "@/lib/types";
 
 // 3D viewers must be client-only (no SSR for WebGL).
@@ -246,6 +247,7 @@ export default function CoursePage() {
             <h2 className="mt-2 text-3xl font-bold">{lesson.title}</h2>
 
             <div className="mt-5">
+              <FirstStep key={`start-${lesson.id}`} lesson={lesson} accent={course.accent} />
               <LessonReader key={lesson.id} body={lesson.body} accent={course.accent} />
             </div>
 
