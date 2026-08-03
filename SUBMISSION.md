@@ -15,7 +15,11 @@ DiverseLearning
 > controls you own.
 
 ## Track
-**AI for Learners Who Think Differently**
+**Track 1** — shown as *"AI for Learners Who Think Differently"* on the overview page and
+*"AI for K–12 Learning"* in the prize table. Same track; pick whichever label the form shows.
+
+## Deadline
+**Aug 8, 11:45 PM Pacific** = **Sun Aug 9, 1:45 PM Bangkok time**. It is 11:45, not 11:59.
 
 ## Try it out
 - https://diverselearning.vercel.app
@@ -38,10 +42,19 @@ I've used is shaped like it. Textbooks hand you the assembled thing as a wall of
 paragraphs and expect the taking-apart to happen invisibly, in your head, while you're
 also fighting to hold your place on the line.
 
-I'm a self-identifying neurodivergent builder. I've never been formally assessed —
-testing wasn't something available to me — but executive function and reading load are
-the daily reality I built this around. DiverseLearning is my own process turned into
-software, not a spec sheet about how neurodivergent people are supposed to learn.
+Here is the specific version. Individual words cost me something to read. The story lands
+fine once I have it — I visualize easily and in detail — but getting it off the page is
+work, and after a while that effort reads as boredom even when the book isn't boring. I
+once spent two hours on fifty pages of a novel I was enjoying. What I'm good at is the
+part after the words: holding a structure in my head and turning it around.
+
+So I built the thing I actually wanted. Put the model first and let the text support it,
+instead of the other way round.
+
+I'm a self-identifying neurodivergent builder — I've never been formally assessed,
+because testing was never something available to me. DiverseLearning is my own process
+turned into software, not a spec sheet about how neurodivergent people are supposed to
+learn.
 
 ## What it does
 

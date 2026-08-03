@@ -1,8 +1,13 @@
 # IncludAI 2026 — Submission Working Doc
 
 Hackathon: **IncludAI — The Neurodiversity Hackathon** (in partnership with Stanford NNEA)
-Build window: **Aug 1 – Aug 8, 2026**, submissions close **Aug 8, 11:59 PM PT**
-Track: **AI for Learners Who Think Differently** (K–12 neurodivergent students)
+Build window: **Aug 1 – Aug 8, 2026**. Submissions close **Aug 8, 11:45 PM Pacific** —
+verified on the live rules page, and it is **11:45, not 11:59**. Devpost shows it in
+Bangkok time as **Sun Aug 9, 1:45 PM (GMT+7)**. That is the number that matters to you.
+
+Track: **Track 1** — listed as *"AI for Learners Who Think Differently"* on the overview
+and *"AI for K–12 Learning"* in the prize table. Same track, two names; pick Track 1
+whichever label the submission form shows.
 
 > This file is the working doc for the Devpost submission. Anything marked **`TODO`**
 > is not true yet and must not be pasted into the submission until it is.
